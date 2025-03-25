@@ -4,7 +4,6 @@ const FORM_DATA_KEY = 'tenant_registration_form_data';
 
 export const saveFormData = (data: TenantFormData) => {
   try {
-    // Remove file data before saving
     const dataToSave = {
       ...data,
       documents: {
