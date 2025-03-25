@@ -17,17 +17,10 @@ export interface CashfreeOrderStatus {
   };
 }
 // types/cashfree.d.ts
-interface DropOptions {
+interface PayOptions {
   paymentSessionId: string;
   components?: string[];
-  onSuccess?: (data: any) => void;
-  onFailure?: (error: any) => void;
-}
-
-interface DropinOptions {
-  paymentSessionId: string;
-  container: HTMLElement | null;
-  components?: string[];
+  container?: HTMLElement | null;
   onSuccess?: (data: any) => void;
   onFailure?: (error: any) => void;
 }
@@ -39,9 +32,17 @@ interface CheckoutOptions {
 }
 
 interface Cashfree {
-  drop?: (container: HTMLElement | null, options: DropOptions) => void;
-  initialiseDropin?: (options: DropinOptions) => void;
+  pay?: (options: PayOptions) => void;
   checkout?: (options: CheckoutOptions) => void;
+  version?: string; // Added from runtime logs
+  create?: (options: any) => any; // Optional, from logs
+  flowWisePay?: (options: any) => any; // Optional, from logs
+  returnElement?: (options: any) => any; // Optional, from logs
+  destroyElement?: (options: any) => any; // Optional, from logs
+  getComponents?: () => any; // Optional, from logs
+  updateRootOptions?: (options: any) => any; // Optional, from logs
+  getRootOptions?: () => any; // Optional, from logs
+  subscriptionsCheckout?: (options: any) => any; // Optional, from logs
 }
 
 interface CashfreeConstructor {
