@@ -21,16 +21,24 @@ const handler: Handler = async (event) => {
   }
 
   try {
-    const { orderId } = event.queryStringParameters || {};
+    const orderId = event.queryStringParameters?.orderId;
     if (!orderId) {
-      throw new Error('Missing orderId parameter');
+      throw new Error('Order ID is required');
     }
 
-    const response = await axios.get(`https://sandbox.cashfree.com/pg/orders/${orderId}`, {
+    const cashfreeApiUrl = `https://sandbox.cashfree.com/pg/orders/${orderId}`;
+    const cashfreeAppId = process.env.CASHFREE_APP_ID;
+    const cashfreeSecretKey = process.env.CASHFREE_SECRET_KEY;
+
+    if (!cashfreeAppId || !cashfreeSecretKey) {
+      throw new Error('Missing Cashfree credentials');
+    }
+
+    const response = await axios.get(cashfreeApiUrl, {
       headers: {
-        'x-client-id': process.env.CASHFREE_APP_ID,
-        'x-client-secret': process.env.CASHFREE_SECRET_KEY,
-        'x-api-version': '2023-08-01',
+        'x-client-id': cashfreeAppId,
+        'x-client-secret': cashfreeSecretKey,
+        'x-api-version': '2022-09-01',
       },
     });
 
