@@ -38,13 +38,23 @@ const PaymentModal = ({ onClose, customerData }: PaymentModalProps) => {
         }
 
         // Initialize Cashfree Payment
-        const cf = new (window as any).Cashfree();
-        const paymentConfig = {
-          paymentSessionId: payment_session_id,
+        const cashfree = new (window as any).Cashfree.HandlePayment();
+        await cashfree.init({
+          sessionId: payment_session_id,
           returnUrl: `${window.location.origin}/payment/success?order_id={order_id}`,
-        };
+        });
 
-        cf.initialiseDropin(document.getElementById("payment-form"), paymentConfig);
+        await cashfree.renderPaymentElements({
+          container: '#payment-form',
+          style: {
+            backgroundColor: '#ffffff',
+            color: '#11385b',
+            fontFamily: 'Lato',
+            fontSize: '14px',
+            errorColor: '#ff0000',
+            theme: 'light'
+          }
+        });
 
       } catch (error) {
         console.error('Payment initialization error:', error);
