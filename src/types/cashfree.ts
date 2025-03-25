@@ -16,6 +16,7 @@ export interface CashfreeOrderStatus {
     customer_phone: string;
   };
 }
+// types/cashfree.d.ts
 interface DropinOptions {
   paymentSessionId: string;
   container: HTMLElement | null;

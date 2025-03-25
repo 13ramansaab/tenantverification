@@ -14,6 +14,21 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const loadCashfreeSDK = () => {
+    return new Promise((resolve, reject) => {
+      if (window.Cashfree) {
+        resolve(true);
+      } else {
+        const script = document.createElement('script');
+        script.src = 'https://sdk.cashfree.com/js/v3/cashfree.js';
+        script.async = true;
+        script.onload = () => resolve(true);
+        script.onerror = () => reject(new Error('Failed to load Cashfree SDK'));
+        document.head.appendChild(script);
+      }
+    });
+  };
+
   useEffect(() => {
     const initializePayment = async () => {
       try {
@@ -40,16 +55,20 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
           throw new Error('Failed to retrieve payment session ID');
         }
 
+        await loadCashfreeSDK(); // Ensure SDK is loaded
+
         if (!window.Cashfree) {
           throw new Error('Cashfree SDK not loaded');
         }
 
-        const cashfree = new window.Cashfree(); // Line 49: This should now type-check
+        const cashfree = new window.Cashfree();
+        console.log('Cashfree instance:', cashfree); // Debug the instance
         cashfree.initialiseDropin({
           paymentSessionId: payment_session_id,
           container: document.getElementById('payment-form'),
           components: ['order-details', 'card', 'upi', 'paylater'],
-          onSuccess: async () => {
+          onSuccess: async (data: any) => {
+            console.log('Payment success:', data);
             await onPaymentComplete();
             setIsProcessing(false);
           },
