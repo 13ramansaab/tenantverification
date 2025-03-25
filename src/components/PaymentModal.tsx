@@ -20,6 +20,10 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
         setIsProcessing(true);
         setError(null);
 
+        if (!window.Cashfree) {
+          throw new Error('Cashfree SDK not loaded');
+        }
+
         const orderId = `TRF-${uuidv4()}`;
         const payload = {
           orderId,
@@ -40,17 +44,22 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
           throw new Error('Failed to retrieve payment session ID');
         }
 
-        if (!window.Cashfree) {
-          throw new Error('Cashfree SDK not loaded');
-        }
-
-        const cashfree = new window.Cashfree({ mode: 'sandbox' });
-        cashfree.checkout({
+        // Initialize Cashfree Payment
+        await window.Cashfree.checkout({
           paymentSessionId: payment_session_id,
-          redirectTarget: '_self',
-          returnUrl: `${window.location.origin}/payment/success?order_id=${orderId}`,
+          returnUrl: `${window.location.origin}/payment/success?order_id={order_id}`,
+          mode: 'TEST',
+          style: {
+            backgroundColor: '#ffffff',
+            color: '#11385b',
+            fontFamily: 'Lato',
+            fontSize: '14px',
+            errorColor: '#ff0000',
+            theme: 'light'
+          }
         });
 
+        // Call onPaymentComplete after successful payment initialization
         await onPaymentComplete();
 
       } catch (error) {
