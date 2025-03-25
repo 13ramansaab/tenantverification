@@ -10,6 +10,7 @@ interface CashfreeSDK {
       redirect?: boolean;
       onPaymentSuccess?: (data: any) => void;
       onPaymentFailure?: (data: any) => void;
+      onError?: (error: any) => void;
     }) => void;
   };
 }
@@ -37,14 +38,21 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
       const script = document.createElement('script');
       script.src = 'https://sdk.cashfree.com/js/v3/cashfree.js';
       script.async = true;
-      script.onload = () => setSdkLoaded(true);
-      script.onerror = () => setError('Failed to load Cashfree SDK');
+      script.onload = () => {
+        console.log('Cashfree SDK loaded');
+        setSdkLoaded(true);
+      };
+      script.onerror = () => {
+        console.error('Failed to load Cashfree SDK');
+        setError('Failed to load Cashfree SDK');
+      };
       document.body.appendChild(script);
 
       return () => {
         document.body.removeChild(script);
       };
     } else {
+      console.log('Cashfree SDK already loaded');
       setSdkLoaded(true);
     }
   }, []);
@@ -85,21 +93,39 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
         console.log('Initializing Cashfree with:', payment_session_id);
         const cashfree = new window.Cashfree(payment_session_id);
 
+        // Track if redirect happens
+        let redirected = false;
+
         // Use checkout with redirect mode
         cashfree.checkout({
-          redirect: true, // Automatically redirects to Cashfree hosted page
+          redirect: true,
           onPaymentSuccess: (data) => {
             console.log('Payment success:', data);
+            redirected = true;
             setIsProcessing(false);
             onPaymentComplete();
             onClose();
           },
           onPaymentFailure: (data) => {
             console.error('Payment failure:', data);
-            setError('Payment failed. Please try again.');
+            setError('Payment failed: ' + (data?.message || 'Unknown error'));
+            setIsProcessing(false);
+          },
+          onError: (error) => {
+            console.error('Cashfree SDK error:', error);
+            setError('SDK error: ' + (error?.message || 'Unknown error'));
             setIsProcessing(false);
           },
         });
+
+        // Fallback: If checkout doesn't redirect within 2 seconds, do it manually
+        setTimeout(() => {
+          if (!redirected) {
+            console.log('Falling back to manual redirect');
+            const paymentUrl = `https://sandbox.cashfree.com/pg/view/sessions/checkout?session_id=${payment_session_id}`;
+            window.location.href = paymentUrl;
+          }
+        }, 2000);
 
       } catch (error) {
         console.error('Payment initialization error:', error);
