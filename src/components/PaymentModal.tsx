@@ -9,7 +9,7 @@ interface PaymentModalProps {
   onPaymentComplete: () => Promise<void>;
 }
 
-const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModalProps) => {
+const PaymentModal = ({ onClose, customerData }: PaymentModalProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
