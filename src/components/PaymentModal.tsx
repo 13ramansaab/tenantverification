@@ -40,23 +40,17 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
           throw new Error('Failed to retrieve payment session ID');
         }
 
-        // Initialize Cashfree Payment
-        const cashfree = new window.Cashfree.HandlePayment();
-        await cashfree.init({
-          sessionId: payment_session_id,
-          returnUrl: `${window.location.origin}/payment/success?order_id={order_id}`,
-        });
+        // Check if Cashfree SDK is loaded
+        if (!window.Cashfree) {
+          throw new Error('Cashfree SDK not loaded');
+        }
 
-        await cashfree.renderPaymentElements({
-          container: '#payment-form',
-          style: {
-            backgroundColor: '#ffffff',
-            color: '#11385b',
-            fontFamily: 'Lato',
-            fontSize: '14px',
-            errorColor: '#ff0000',
-            theme: 'light'
-          }
+        // Initialize Cashfree Payment
+        const cashfree = new window.Cashfree({ mode: 'sandbox' });
+        cashfree.checkout({
+          paymentSessionId: payment_session_id,
+          redirectTarget: '_self', // Or '_modal' for popup
+          returnUrl: `${window.location.origin}/payment/success?order_id=${orderId}`,
         });
 
         // Call onPaymentComplete after successful payment initialization
