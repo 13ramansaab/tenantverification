@@ -16,3 +16,27 @@ export interface CashfreeOrderStatus {
     customer_phone: string;
   };
 }
+
+declare global {
+  interface Window {
+    Cashfree: {
+      HandlePayment: new () => {
+        init: (config: {
+          sessionId: string;
+          returnUrl: string;
+        }) => Promise<void>;
+        renderPaymentElements: (config: {
+          container: string;
+          style?: {
+            backgroundColor?: string;
+            color?: string;
+            fontFamily?: string;
+            fontSize?: string;
+            errorColor?: string;
+            theme?: 'light' | 'dark';
+          };
+        }) => Promise<void>;
+      };
+    };
+  }
+}
