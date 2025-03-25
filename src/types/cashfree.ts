@@ -16,6 +16,13 @@ export interface CashfreeOrderStatus {
     customer_phone: string;
   };
 }
+interface DropinOptions {
+  paymentSessionId: string;
+  container: HTMLElement | null;
+  components?: string[];
+  onSuccess?: (data: any) => void;
+  onFailure?: (error: any) => void;
+}
 
 interface Cashfree {
   initialiseDropin(options: DropinOptions): void;
