@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
-import type { TenantFormData } from '@/types';
-import type { CashfreeOrderResponse } from '@/types/cashfree';
+import type { TenantFormData } from '../types';
+import type { CashfreeOrderResponse } from '../types/cashfree';
 
 interface PaymentModalProps {
   onClose: () => void;
