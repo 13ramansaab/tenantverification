@@ -52,15 +52,18 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
           returnUrl: `${window.location.origin}/payment/success`,
         });
 
+        // Call onPaymentComplete when payment is initialized
+        await onPaymentComplete();
       } catch (error) {
         console.error('Payment initialization error:', error);
         setError(error instanceof Error ? error.message : 'Payment initialization failed');
+      } finally {
         setIsProcessing(false);
       }
     };
 
     initializePayment();
-  }, [customerData]);
+  }, [customerData, onPaymentComplete]);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
