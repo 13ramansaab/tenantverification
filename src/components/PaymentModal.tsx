@@ -17,12 +17,16 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
   const loadCashfreeSDK = () => {
     return new Promise((resolve, reject) => {
       if (window.Cashfree) {
+        console.log('Cashfree SDK already loaded:', window.Cashfree);
         resolve(true);
       } else {
         const script = document.createElement('script');
         script.src = 'https://sdk.cashfree.com/js/v3/cashfree.js';
         script.async = true;
-        script.onload = () => resolve(true);
+        script.onload = () => {
+          console.log('Cashfree SDK loaded:', window.Cashfree);
+          resolve(true);
+        };
         script.onerror = () => reject(new Error('Failed to load Cashfree SDK'));
         document.head.appendChild(script);
       }
@@ -63,19 +67,15 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
 
         const cashfree = new window.Cashfree();
         console.log('Cashfree instance:', cashfree); // Debug the instance
-        cashfree.initialiseDropin({
+        // Use checkout instead of initialiseDropin
+        cashfree.checkout({
           paymentSessionId: payment_session_id,
-          container: document.getElementById('payment-form'),
-          components: ['order-details', 'card', 'upi', 'paylater'],
-          onSuccess: async (data: any) => {
-            console.log('Payment success:', data);
-            await onPaymentComplete();
-            setIsProcessing(false);
-          },
-          onFailure: (error: any) => {
-            throw new Error(`Payment failed: ${error.message}`);
-          },
+          redirectTarget: '_self', // Or '_modal' for popup
+          returnUrl: `${window.location.origin}/payment/success?order_id=${orderId}`,
         });
+
+        // Note: checkout redirects, so onPaymentComplete might need to be handled on the return page
+        // await onPaymentComplete();
 
       } catch (error) {
         console.error('Payment initialization error:', error);

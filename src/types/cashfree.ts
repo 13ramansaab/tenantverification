@@ -17,16 +17,14 @@ export interface CashfreeOrderStatus {
   };
 }
 // types/cashfree.d.ts
-interface DropinOptions {
+interface CheckoutOptions {
   paymentSessionId: string;
-  container: HTMLElement | null;
-  components?: string[];
-  onSuccess?: (data: any) => void;
-  onFailure?: (error: any) => void;
+  redirectTarget?: '_self' | '_blank' | '_modal';
+  returnUrl?: string;
 }
 
 interface Cashfree {
-  initialiseDropin(options: DropinOptions): void;
+  checkout(options: CheckoutOptions): void;
 }
 
 interface CashfreeConstructor {
