@@ -17,9 +17,6 @@
     "crypto-js": "^4.2.0",
     "axios": "^1.6.2",
     "react-router-dom": "^6.21.0",
-    "express": "^4.18.2",
-    "cors": "^2.8.5",
-    "dotenv": "^16.3.1",
     "@netlify/functions": "^2.4.1"
   },
   "devDependencies": {
@@ -27,6 +24,9 @@
     "@types/react-dom": "^18.2.17",
     "@types/uuid": "^9.0.7",
     "@types/crypto-js": "^4.2.1",
+    "@types/axios": "^0.14.0",
+    "@types/react-router-dom": "^5.3.3",
+    "@types/node": "^20.11.0",  // For Netlify Functions TypeScript support
     "@vitejs/plugin-react": "^4.2.1",
     "autoprefixer": "^10.4.16",
     "postcss": "^8.4.32",
