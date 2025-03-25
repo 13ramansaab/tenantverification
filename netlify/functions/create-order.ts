@@ -5,7 +5,7 @@ const handler: Handler = async (event) => {
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS'
   };
 
   if (event.httpMethod === 'OPTIONS') {
@@ -16,7 +16,7 @@ const handler: Handler = async (event) => {
     return {
       statusCode: 405,
       headers,
-      body: JSON.stringify({ error: 'Method not allowed' }),
+      body: JSON.stringify({ error: 'Method not allowed' })
     };
   }
 
@@ -37,18 +37,18 @@ const handler: Handler = async (event) => {
     }
 
     const orderData = {
-      order_amount: 250,
-      order_currency: 'INR',
       order_id: orderId,
+      order_amount: 250,
+      order_currency: "INR",
       customer_details: {
         customer_id: customerDetails.customerId,
-        customer_email: customerDetails.customerEmail,
         customer_phone: customerDetails.customerPhone,
-        customer_name: customerDetails.customerName,
+        customer_email: customerDetails.customerEmail,
+        customer_name: customerDetails.customerName
       },
       order_meta: {
         return_url: `${process.env.URL || 'http://localhost:8888'}/payment/success?order_id={order_id}`,
-        notify_url: `${process.env.URL || 'http://localhost:8888'}/payment/webhook`,
+        notify_url: `${process.env.URL || 'http://localhost:8888'}/payment/webhook`
       },
       order_note: "Tenant Registration Fee"
     };
@@ -60,8 +60,8 @@ const handler: Handler = async (event) => {
         'x-client-id': cashfreeAppId,
         'x-client-secret': cashfreeSecretKey,
         'x-api-version': '2022-09-01',
-        'Content-Type': 'application/json',
-      },
+        'Content-Type': 'application/json'
+      }
     });
 
     console.log('Cashfree response:', response.data);
@@ -74,14 +74,14 @@ const handler: Handler = async (event) => {
         payment_session_id,
         order_id,
         order_status
-      }),
+      })
     };
   } catch (error) {
     console.error('Order creation error:', error.response?.data || error.message);
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ error: error.response?.data?.message || 'Server error' }),
+      body: JSON.stringify({ error: error.response?.data?.message || 'Server error' })
     };
   }
 };

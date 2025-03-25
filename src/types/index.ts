@@ -40,3 +40,16 @@ export interface TenantFormData {
     timestamp?: string;
   };
 }
+
+export interface PGOwner {
+  mobileNo: string;
+  name: string;
+  pgName: string;
+  address: string;
+}
+
+export interface PaymentData {
+  amount: number;
+  transactionId: string;
+  timestamp: string;
+}
