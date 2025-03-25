@@ -66,19 +66,51 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
         }
 
         const cashfree = new window.Cashfree();
-        console.log('Cashfree instance:', cashfree); // Debug the instance
-        cashfree.drop(document.getElementById('payment-form'), {
-          paymentSessionId: payment_session_id,
-          components: ['order-details', 'card', 'upi', 'paylater'],
-          onSuccess: async (data: any) => {
-            console.log('Payment success:', data);
-            await onPaymentComplete();
-            setIsProcessing(false);
-          },
-          onFailure: (error: any) => {
-            throw new Error(`Payment failed: ${error.message}`);
-          },
-        });
+        console.log('Cashfree instance:', cashfree);
+        console.log('Available methods:', Object.getOwnPropertyNames(cashfree.__proto__));
+
+        // Try drop (from CodeSandbox)
+        if (typeof cashfree.drop === 'function') {
+          cashfree.drop(document.getElementById('payment-form'), {
+            paymentSessionId: payment_session_id,
+            components: ['order-details', 'card', 'upi', 'paylater'],
+            onSuccess: async (data: any) => {
+              console.log('Payment success:', data);
+              await onPaymentComplete();
+              setIsProcessing(false);
+            },
+            onFailure: (error: any) => {
+              throw new Error(`Payment failed: ${error.message}`);
+            },
+          });
+        }
+        // Fallback to checkout (redirect flow)
+        else if (typeof cashfree.checkout === 'function') {
+          cashfree.checkout({
+            paymentSessionId: payment_session_id,
+            redirectTarget: '_self',
+            returnUrl: `${window.location.origin}/payment/success?order_id=${orderId}`,
+          });
+          // Note: onPaymentComplete will need to be handled on the return page
+        }
+        // Fallback to initialiseDropin (older method)
+        else if (typeof cashfree.initialiseDropin === 'function') {
+          cashfree.initialiseDropin({
+            paymentSessionId: payment_session_id,
+            container: document.getElementById('payment-form'),
+            components: ['order-details', 'card', 'upi', 'paylater'],
+            onSuccess: async (data: any) => {
+              console.log('Payment success:', data);
+              await onPaymentComplete();
+              setIsProcessing(false);
+            },
+            onFailure: (error: any) => {
+              throw new Error(`Payment failed: ${error.message}`);
+            },
+          });
+        } else {
+          throw new Error('No valid Cashfree payment method found (drop, checkout, initialiseDropin)');
+        }
 
       } catch (error) {
         console.error('Payment initialization error:', error);
