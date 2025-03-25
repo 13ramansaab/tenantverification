@@ -25,18 +25,6 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
         setIsProcessing(true);
         setError(null);
 
-        // Wait for Cashfree SDK to load
-        if (typeof window.Cashfree === 'undefined') {
-          await new Promise<void>((resolve) => {
-            const checkSDK = setInterval(() => {
-              if (typeof window.Cashfree !== 'undefined') {
-                clearInterval(checkSDK);
-                resolve();
-              }
-            }, 100);
-          });
-        }
-
         const orderId = `TRF-${uuidv4()}`;
         
         const response = await axios.post('/.netlify/functions/create-order', {
@@ -55,16 +43,25 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
           throw new Error('Failed to create payment session');
         }
 
-        // Initialize Cashfree SDK
-        const cashfree = new window.Cashfree();
-        
-        const paymentConfig = {
+        if (typeof window.Cashfree === 'undefined') {
+          throw new Error('Cashfree SDK not loaded');
+        }
+
+        const cashfree = new window.Cashfree.Payment({
           paymentSessionId: payment_session_id,
           returnUrl: `${window.location.origin}/payment/success?order_id={order_id}`
-        };
+        });
 
-        cashfree.initialiseDropin(document.getElementById("payment-form"), paymentConfig);
+        await cashfree.init();
+        
+        const paymentElement = document.getElementById("payment-form");
+        if (paymentElement) {
+          await cashfree.drop(paymentElement);
+        } else {
+          throw new Error('Payment form element not found');
+        }
 
+        setIsProcessing(false);
       } catch (error) {
         console.error('Payment initialization error:', error);
         setError(error instanceof Error ? error.message : 'Payment initialization failed');
