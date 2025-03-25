@@ -28,7 +28,6 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
           console.log('Cashfree SDK loaded:', window.Cashfree);
           console.log('Cashfree own properties after load:', Object.keys(window.Cashfree));
           console.log('Cashfree prototype after load:', Object.getPrototypeOf(window.Cashfree));
-          // Check if SDK exposes a version or init method
           console.log('Cashfree version (if available):', (window.Cashfree as any).version);
           resolve(true);
         };
@@ -77,7 +76,6 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
         console.log('Instance prototype methods:', Object.getOwnPropertyNames(cashfreeProto));
         console.log('Instance own properties:', Object.keys(cashfree));
 
-        // Test for drop
         if (typeof cashfree.drop === 'function') {
           console.log('Using drop method');
           cashfree.drop(document.getElementById('payment-form'), {
@@ -93,9 +91,7 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
               throw new Error(`Payment failed: ${error.message}`);
             },
           });
-        }
-        // Fallback to initialiseDropin
-        else if (typeof cashfree.initialiseDropin === 'function') {
+        } else if (typeof cashfree.initialiseDropin === 'function') {
           console.log('Using initialiseDropin method');
           cashfree.initialiseDropin({
             paymentSessionId: payment_session_id,
@@ -111,16 +107,14 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
               throw new Error(`Payment failed: ${error.message}`);
             },
           });
-        }
-        // Fallback to checkout
-        else if (typeof cashfree.checkout === 'function') {
+        } else if (typeof cashfree.checkout === 'function') {
           console.log('Using checkout method');
           cashfree.checkout({
             paymentSessionId: payment_session_id,
             redirectTarget: '_self',
             returnUrl: `${window.location.origin}/payment/success?order_id=${orderId}`,
           });
-          // Note: onPaymentComplete will need to be handled on return page
+          // Note: onPaymentComplete will need to be handled on the return page
         } else {
           console.error('No Cashfree payment methods available');
           console.log('Checking raw instance for clues:', JSON.stringify(cashfree, null, 2));
