@@ -6,10 +6,10 @@ import axios from 'axios';
 interface PaymentModalProps {
   onClose: () => void;
   customerData: TenantFormData;
-  onPaymentComplete: () => Promise<void>;
+  // onPaymentComplete: () => Promise<void>; // Removed since it's not used
 }
 
-const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModalProps) => {
+const PaymentModal = ({ onClose, customerData }: PaymentModalProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

@@ -22,13 +22,31 @@ const PaymentSuccess = () => {
             'x-api-version': '2022-09-01'
           }
         });
+import { useEffect, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import axios from 'axios';
 
-        if (!response.ok) {
-          throw new Error('Failed to verify payment status');
+const PaymentSuccess = () => {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const [isProcessing, setIsProcessing] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const verifyPayment = async () => {
+      try {
+        const orderId = searchParams.get('order_id');
+        if (!orderId) {
+          throw new Error('No order ID received from payment gateway');
         }
 
-        const data = await response.json();
-        
+        // Call a Netlify Function to verify the payment
+        const response = await axios.get('/.netlify/functions/verify-payment', {
+          params: { orderId },
+        });
+
+        const data = response.data;
+
         if (data.order_status === 'PAID') {
           setTimeout(() => {
             navigate('/', { state: { paymentSuccess: true } });
@@ -37,6 +55,7 @@ const PaymentSuccess = () => {
           throw new Error(`Payment failed: ${data.order_status}`);
         }
       } catch (error) {
+        console.error('Payment verification error:', error);
         setError(error instanceof Error ? error.message : 'Payment verification failed');
       } finally {
         setIsProcessing(false);
