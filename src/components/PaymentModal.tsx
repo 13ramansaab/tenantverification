@@ -29,18 +29,25 @@ const PaymentModal = ({ onClose, customerData }: PaymentModalProps) => {
             customerName: `${customerData.firstName} ${customerData.lastName}`,
           },
         };
-        console.log('Sending to create-order:', payload);
 
         const response = await axios.post('/.netlify/functions/create-order', payload);
-        console.log('Received from create-order:', response.data);
-        const { payment_link } = response.data;
+        const { payment_session_id, order_status } = response.data;
 
-        if (!payment_link) {
-          throw new Error('Failed to retrieve payment link');
+        if (!payment_session_id || order_status !== 'ACTIVE') {
+          throw new Error('Failed to initialize payment');
         }
 
-        // Redirect to Cashfree payment page
-        window.location.href = payment_link;
+        // Initialize Cashfree Payment
+        const cashfree = new (window as any).Cashfree({
+          mode: "sandbox"
+        });
+
+        await cashfree.init({
+          paymentSessionId: payment_session_id,
+          orderAmount: 250,
+        });
+
+        cashfree.redirect();
 
       } catch (error) {
         console.error('Payment initialization error:', error);
