@@ -6,10 +6,10 @@ import axios from 'axios';
 interface PaymentModalProps {
   onClose: () => void;
   customerData: TenantFormData;
-  // onPaymentComplete: () => Promise<void>; // Removed since it's not used
+  onPaymentComplete: () => Promise<void>;
 }
 
-const PaymentModal = ({ onClose, customerData }: PaymentModalProps) => {
+const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModalProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,16 +33,14 @@ const PaymentModal = ({ onClose, customerData }: PaymentModalProps) => {
 
         const response = await axios.post('/.netlify/functions/create-order', payload);
         console.log('Received from create-order:', response.data);
-        const { order_id, order_token } = response.data;
+        const { payment_link } = response.data;
 
-        if (!order_id || !order_token) {
-          throw new Error('Failed to retrieve order_id or order_token');
+        if (!payment_link) {
+          throw new Error('Failed to retrieve payment link');
         }
 
-        // Redirect to Cashfree Hosted Payment Page
-        const paymentUrl = `https://sandbox.cashfree.com/pg/orders/pay?order_id=${order_id}&order_token=${order_token}`;
-        console.log('Redirecting to:', paymentUrl);
-        window.location.href = paymentUrl;
+        // Redirect to Cashfree payment page
+        window.location.href = payment_link;
 
       } catch (error) {
         console.error('Payment initialization error:', error);

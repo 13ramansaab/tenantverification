@@ -29,8 +29,12 @@ const handler: Handler = async (event) => {
     console.log('Request payload:', { orderId, customerDetails });
 
     const cashfreeApiUrl = 'https://sandbox.cashfree.com/pg/orders';
-    const cashfreeAppId = process.env.CASHFREE_APP_ID || 'YOUR_SANDBOX_APP_ID';
-    const cashfreeSecretKey = process.env.CASHFREE_SECRET_KEY || 'YOUR_SANDBOX_SECRET_KEY';
+    const cashfreeAppId = process.env.YOUR_SANDBOX_APP_ID;
+    const cashfreeSecretKey = process.env.YOUR_SANDBOX_SECRET_KEY;
+
+    if (!cashfreeAppId || !cashfreeSecretKey) {
+      throw new Error('Missing Cashfree credentials');
+    }
 
     const orderData = {
       order_amount: 250,
@@ -46,6 +50,7 @@ const handler: Handler = async (event) => {
         return_url: 'https://registertenant.netlify.app/payment/success?order_id={order_id}',
         notify_url: 'https://registertenant.netlify.app/payment/webhook',
       },
+      order_note: "Tenant Registration Fee"
     };
 
     console.log('Sending to Cashfree:', orderData);
@@ -54,19 +59,13 @@ const handler: Handler = async (event) => {
       headers: {
         'x-client-id': cashfreeAppId,
         'x-client-secret': cashfreeSecretKey,
-        'x-api-version': '2023-08-01',
+        'x-api-version': '2022-09-01',
         'Content-Type': 'application/json',
       },
     });
 
-    console.log('Cashfree full response:', response.data);
-    const { payment_session_id, order_id, order_token, order_status } = response.data;
-
-    if (!payment_session_id || !order_token) {
-      throw new Error('Cashfree did not return required fields (payment_session_id or order_token)');
-    }
-
-    console.log('Returning to frontend:', { payment_session_id, order_id, order_token });
+    console.log('Cashfree response:', response.data);
+    const { payment_session_id, order_id, payment_link } = response.data;
 
     return {
       statusCode: 200,
@@ -74,8 +73,7 @@ const handler: Handler = async (event) => {
       body: JSON.stringify({
         payment_session_id,
         order_id,
-        order_token,
-        order_status,
+        payment_link
       }),
     };
   } catch (error) {
