@@ -29,8 +29,8 @@ const handler: Handler = async (event) => {
     console.log('Received payload:', { orderId, customerDetails });
 
     const cashfreeApiUrl = 'https://sandbox.cashfree.com/pg/orders';
-    const cashfreeAppId = process.env.CASHFREE_APP_ID || 'TEST105185193663f7fff515e413933291581501'; // Replace with your sandbox ID
-    const cashfreeSecretKey = process.env.CASHFREE_SECRET_KEY || 'cfsk_ma_test_c99e1951302855b07919f8e17dfc3847_84b7809b'; // Replace with your sandbox key
+    const cashfreeAppId = process.env.CASHFREE_APP_ID || 'YOUR_SANDBOX_APP_ID'; // Replace with your sandbox ID
+    const cashfreeSecretKey = process.env.CASHFREE_SECRET_KEY || 'YOUR_SANDBOX_SECRET_KEY'; // Replace with your sandbox key
 
     const orderData = {
       order_amount: 250,
