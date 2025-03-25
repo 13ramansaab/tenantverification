@@ -46,7 +46,7 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
         }
 
         // Initialize Cashfree Payment
-        const cashfree = window.Cashfree.create();
+        const cashfree = new window.Cashfree();
         await cashfree.init({
           paymentSessionId: payment_session_id,
           returnUrl: `${window.location.origin}/payment/success`,
