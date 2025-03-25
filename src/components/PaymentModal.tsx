@@ -38,16 +38,13 @@ const PaymentModal = ({ onClose, customerData }: PaymentModalProps) => {
         }
 
         // Initialize Cashfree Payment
-        const cashfree = new (window as any).Cashfree({
-          mode: "sandbox"
-        });
-
-        await cashfree.init({
+        const cf = new (window as any).Cashfree();
+        const paymentConfig = {
           paymentSessionId: payment_session_id,
-          orderAmount: 250,
-        });
+          returnUrl: `${window.location.origin}/payment/success?order_id={order_id}`,
+        };
 
-        cashfree.redirect();
+        cf.initialiseDropin(document.getElementById("payment-form"), paymentConfig);
 
       } catch (error) {
         console.error('Payment initialization error:', error);
