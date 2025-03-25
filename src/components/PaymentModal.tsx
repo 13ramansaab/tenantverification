@@ -3,10 +3,14 @@ import { TenantFormData } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 import axios from 'axios';
 
-// Refine TypeScript declaration for Cashfree SDK
+// TypeScript declaration for Cashfree SDK v3
 interface CashfreeSDK {
   new (paymentSessionId: string): {
-    redirect(): void;
+    checkout: (options: {
+      redirect?: boolean;
+      onPaymentSuccess?: (data: any) => void;
+      onPaymentFailure?: (data: any) => void;
+    }) => void;
   };
 }
 
@@ -31,7 +35,7 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
   useEffect(() => {
     if (!window.Cashfree) {
       const script = document.createElement('script');
-      script.src = 'https://sdk.cashfree.com/js/v3/cashfree.js'; // Latest sandbox/prod URL
+      script.src = 'https://sdk.cashfree.com/js/v3/cashfree.js';
       script.async = true;
       script.onload = () => setSdkLoaded(true);
       script.onerror = () => setError('Failed to load Cashfree SDK');
@@ -55,7 +59,7 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
         setError(null);
 
         const orderId = `TRF-${uuidv4()}`;
-        const response = await axios.post('/.netlify/functions/create-order', {
+        const payload = {
           orderId,
           customerDetails: {
             customerId: customerData.mobileNo,
@@ -63,8 +67,11 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
             customerEmail: customerData.email,
             customerName: `${customerData.firstName} ${customerData.lastName}`,
           },
-        });
+        };
+        console.log('Sending to create-order:', payload);
 
+        const response = await axios.post('/.netlify/functions/create-order', payload);
+        console.log('Received from create-order:', response.data);
         const { payment_session_id } = response.data;
 
         if (!payment_session_id) {
@@ -75,12 +82,25 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
           throw new Error('Cashfree SDK not loaded');
         }
 
+        console.log('Initializing Cashfree with:', payment_session_id);
         const cashfree = new window.Cashfree(payment_session_id);
-        cashfree.redirect();
 
-        // Optionally, handle redirect completion if redirect doesn't fully exit the flow
-        setIsProcessing(false);
-        await onPaymentComplete(); // Call this if payment success is confirmed elsewhere
+        // Use checkout with redirect mode
+        cashfree.checkout({
+          redirect: true, // Automatically redirects to Cashfree hosted page
+          onPaymentSuccess: (data) => {
+            console.log('Payment success:', data);
+            setIsProcessing(false);
+            onPaymentComplete();
+            onClose();
+          },
+          onPaymentFailure: (data) => {
+            console.error('Payment failure:', data);
+            setError('Payment failed. Please try again.');
+            setIsProcessing(false);
+          },
+        });
+
       } catch (error) {
         console.error('Payment initialization error:', error);
         setError(error instanceof Error ? error.message : 'Payment initialization failed');
