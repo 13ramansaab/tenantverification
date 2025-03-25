@@ -63,7 +63,7 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
           throw new Error('Failed to retrieve payment session ID');
         }
 
-        await loadCashfreeSDK(); // Ensure SDK is loaded
+        await loadCashfreeSDK();
 
         if (!window.Cashfree) {
           throw new Error('Cashfree SDK not loaded');
@@ -71,32 +71,15 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
 
         const cashfree = new window.Cashfree();
         console.log('Cashfree instance:', cashfree);
-        const cashfreeProto = Object.getPrototypeOf(cashfree);
-        console.log('Cashfree prototype:', cashfreeProto);
-        console.log('Instance prototype methods:', Object.getOwnPropertyNames(cashfreeProto));
         console.log('Instance own properties:', Object.keys(cashfree));
+        console.log('Instance version:', cashfree.version);
 
-        if (typeof cashfree.drop === 'function') {
-          console.log('Using drop method');
-          cashfree.drop(document.getElementById('payment-form'), {
+        if (typeof cashfree.pay === 'function') {
+          console.log('Using pay method');
+          cashfree.pay({
             paymentSessionId: payment_session_id,
             components: ['order-details', 'card', 'upi', 'paylater'],
-            onSuccess: async (data: any) => {
-              console.log('Payment success:', data);
-              await onPaymentComplete();
-              setIsProcessing(false);
-            },
-            onFailure: (error: any) => {
-              console.error('Payment failure:', error);
-              throw new Error(`Payment failed: ${error.message}`);
-            },
-          });
-        } else if (typeof cashfree.initialiseDropin === 'function') {
-          console.log('Using initialiseDropin method');
-          cashfree.initialiseDropin({
-            paymentSessionId: payment_session_id,
             container: document.getElementById('payment-form'),
-            components: ['order-details', 'card', 'upi', 'paylater'],
             onSuccess: async (data: any) => {
               console.log('Payment success:', data);
               await onPaymentComplete();
@@ -114,11 +97,10 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
             redirectTarget: '_self',
             returnUrl: `${window.location.origin}/payment/success?order_id=${orderId}`,
           });
-          // Note: onPaymentComplete will need to be handled on the return page
+          setIsProcessing(false); // Clear spinner before redirect
         } else {
-          console.error('No Cashfree payment methods available');
-          console.log('Checking raw instance for clues:', JSON.stringify(cashfree, null, 2));
-          throw new Error('Cashfree SDK lacks drop, initialiseDropin, or checkout methods');
+          console.error('No suitable Cashfree payment methods available');
+          throw new Error('Cashfree SDK lacks pay or checkout methods');
         }
 
       } catch (error) {
