@@ -55,27 +55,15 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
           throw new Error('Failed to create payment session');
         }
 
-        const cashfree = new window.Cashfree({
-          mode: "sandbox"
-        });
-
-        await cashfree.init({
-          orderToken: payment_session_id
-        });
+        // Initialize Cashfree SDK
+        const cashfree = new window.Cashfree();
         
-        await cashfree.redirect();
+        const paymentConfig = {
+          paymentSessionId: payment_session_id,
+          returnUrl: `${window.location.origin}/payment/success?order_id={order_id}`
+        };
 
-        // The redirect() method will handle the navigation, 
-        // but we'll set up event handlers just in case
-        cashfree.on('payment_success', async (data: any) => {
-          console.log('Payment success:', data);
-          await onPaymentComplete();
-        });
-
-        cashfree.on('payment_failure', (data: any) => {
-          console.error('Payment failed:', data);
-          setError('Payment failed. Please try again.');
-        });
+        cashfree.initialiseDropin(document.getElementById("payment-form"), paymentConfig);
 
       } catch (error) {
         console.error('Payment initialization error:', error);
@@ -103,7 +91,7 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
 
         <div className="mb-6">
           <p className="text-lg font-medium mb-2">Amount to pay: ₹250</p>
-          <p className="text-sm text-gray-600">Please wait while we initialize the payment...</p>
+          <p className="text-sm text-gray-600">Please complete the payment to proceed.</p>
         </div>
 
         {error && (
@@ -112,12 +100,14 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
           </div>
         )}
 
-        {isProcessing && (
-          <div className="mb-4 text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
-            <p className="text-gray-600">Initializing payment...</p>
-          </div>
-        )}
+        <div id="payment-form" className="mb-4">
+          {isProcessing && (
+            <div className="text-center py-4">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
+              <p className="text-gray-600">Initializing payment...</p>
+            </div>
+          )}
+        </div>
 
         <div className="mt-6 text-center">
           <p className="text-xs text-gray-500">
