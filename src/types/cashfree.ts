@@ -17,15 +17,16 @@ export interface CashfreeOrderStatus {
   };
 }
 
+interface Cashfree {
+  initialiseDropin(options: DropinOptions): void;
+}
+
+interface CashfreeConstructor {
+  new (): Cashfree;
+}
+
 declare global {
   interface Window {
-    Cashfree: {
-      create: () => {
-        init: (config: {
-          paymentSessionId: string;
-          returnUrl?: string;
-        }) => Promise<void>;
-      };
-    };
+    Cashfree: CashfreeConstructor;
   }
 }

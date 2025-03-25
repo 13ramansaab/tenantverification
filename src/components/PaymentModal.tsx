@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
-import type { TenantFormData } from '../types';
-import type { CashfreeOrderResponse } from '../types/cashfree';
+import type { TenantFormData } from '@/types';
+import type { CashfreeOrderResponse } from '@/types/cashfree';
 
 interface PaymentModalProps {
   onClose: () => void;
@@ -13,17 +13,12 @@ interface PaymentModalProps {
 const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModalProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const paymentFormRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const initializePayment = async () => {
       try {
         setIsProcessing(true);
         setError(null);
-
-        if (!window.Cashfree) {
-          throw new Error('Cashfree SDK not loaded');
-        }
 
         const orderId = `TRF-${uuidv4()}`;
         const payload = {
@@ -45,19 +40,27 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
           throw new Error('Failed to retrieve payment session ID');
         }
 
-        // Initialize Cashfree Payment
-        const cashfree = new window.Cashfree();
-        await cashfree.init({
+        if (!window.Cashfree) {
+          throw new Error('Cashfree SDK not loaded');
+        }
+
+        const cashfree = new window.Cashfree(); // Line 49: This should now type-check
+        cashfree.initialiseDropin({
           paymentSessionId: payment_session_id,
-          returnUrl: `${window.location.origin}/payment/success`,
+          container: document.getElementById('payment-form'),
+          components: ['order-details', 'card', 'upi', 'paylater'],
+          onSuccess: async () => {
+            await onPaymentComplete();
+            setIsProcessing(false);
+          },
+          onFailure: (error: any) => {
+            throw new Error(`Payment failed: ${error.message}`);
+          },
         });
 
-        // Call onPaymentComplete when payment is initialized
-        await onPaymentComplete();
       } catch (error) {
         console.error('Payment initialization error:', error);
         setError(error instanceof Error ? error.message : 'Payment initialization failed');
-      } finally {
         setIsProcessing(false);
       }
     };
@@ -70,35 +73,27 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
       <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-semibold">Complete Payment</h2>
-          <button
-            onClick={onClose}
-            disabled={isProcessing}
-            className="text-gray-500 hover:text-gray-700"
-          >
+          <button onClick={onClose} disabled={isProcessing} className="text-gray-500 hover:text-gray-700">
             ✕
           </button>
         </div>
-
         <div className="mb-6">
           <p className="text-lg font-medium mb-2">Amount to pay: ₹250</p>
           <p className="text-sm text-gray-600">Please complete the payment to proceed.</p>
         </div>
-
         {error && (
           <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
             {error}
           </div>
         )}
-
-        <div id="payment-form" ref={paymentFormRef} className="mb-4">
-          {isProcessing && (
+        <div id="payment-form" className="mb-4">
+          {isProcessing && !error && (
             <div className="text-center py-4">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
               <p className="text-gray-600">Initializing payment...</p>
             </div>
           )}
         </div>
-
         <div className="mt-6 text-center">
           <p className="text-xs text-gray-500">Secure payment powered by Cashfree</p>
         </div>
