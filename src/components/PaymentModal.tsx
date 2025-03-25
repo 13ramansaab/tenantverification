@@ -11,7 +11,7 @@ interface PaymentModalProps {
 
 declare global {
   interface Window {
-    CFPaymentSdk: any;
+    Cashfree: any;
   }
 }
 
@@ -24,6 +24,11 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
       try {
         setIsProcessing(true);
         setError(null);
+
+        // Check if Cashfree SDK is loaded
+        if (typeof window.Cashfree === 'undefined') {
+          throw new Error('Cashfree SDK not loaded');
+        }
 
         const orderId = `TRF-${uuidv4()}`;
         
@@ -43,29 +48,19 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
           throw new Error('Failed to create payment session');
         }
 
-        if (typeof window.CFPaymentSdk === 'undefined') {
-          throw new Error('Cashfree SDK not loaded');
-        }
+        // Initialize Cashfree SDK
+        const cashfree = new window.Cashfree({
+          mode: 'sandbox'
+        });
 
-        const paymentConfig = {
-          layout: {
-            view: 'inline'
-          },
+        await cashfree.init({
           paymentSessionId: payment_session_id,
-          eventHandlers: {
-            paymentSuccess: async (data: any) => {
-              console.log('Payment Success:', data);
-              await onPaymentComplete();
-            },
-            paymentFailure: (data: any) => {
-              console.error('Payment Failed:', data);
-              setError('Payment failed. Please try again.');
-            }
-          }
-        };
+          returnUrl: window.location.origin + '/payment/success'
+        });
 
-        await window.CFPaymentSdk.doPayment(paymentConfig);
-        setIsProcessing(false);
+        // Render payment form
+        cashfree.redirect();
+        
       } catch (error) {
         console.error('Payment initialization error:', error);
         setError(error instanceof Error ? error.message : 'Payment initialization failed');
