@@ -20,20 +20,12 @@ export interface CashfreeOrderStatus {
 declare global {
   interface Window {
     Cashfree: {
-      initialiseDropin: (config: {
-        orderToken: string;
-        onSuccess: (data: { order: { orderId: string } }) => void;
-        onFailure: (data: { order: { orderId: string }, transaction: { txStatus: string } }) => void;
-        components: string[];
-        style: {
-          backgroundColor?: string;
-          color?: string;
-          fontFamily?: string;
-          fontSize?: string;
-          errorColor?: string;
-          theme?: 'light' | 'dark';
-        };
-      }) => Promise<void>;
+      create: () => {
+        init: (config: {
+          paymentSessionId: string;
+          returnUrl?: string;
+        }) => Promise<void>;
+      };
     };
   }
 }
