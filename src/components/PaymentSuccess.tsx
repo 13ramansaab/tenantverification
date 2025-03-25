@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import axios from 'axios';
+import { CashfreeOrderStatus } from '../types/cashfree';
 
 const PaymentSuccess = () => {
   const [searchParams] = useSearchParams();
@@ -15,26 +17,16 @@ const PaymentSuccess = () => {
           throw new Error('No order ID received from payment gateway');
         }
 
-        const response = await fetch(`https://sandbox.cashfree.com/pg/orders/${orderId}`, {
-          headers: {
-            'x-client-id': process.env.YOUR_SANDBOX_APP_ID || '',
-            'x-client-secret': process.env.YOUR_SANDBOX_SECRET_KEY || '',
-            'x-api-version': '2022-09-01'
-          }
-        });
+        const response = await axios.get<CashfreeOrderStatus>(
+          `/.netlify/functions/verify-payment?orderId=${orderId}`
+        );
 
-        if (!response.ok) {
-          throw new Error('Failed to verify payment status');
-        }
-
-        const data = await response.json();
-        
-        if (data.order_status === 'PAID') {
+        if (response.data.order_status === 'PAID') {
           setTimeout(() => {
             navigate('/', { state: { paymentSuccess: true } });
           }, 3000);
         } else {
-          throw new Error(`Payment failed: ${data.order_status}`);
+          throw new Error(`Payment failed: ${response.data.order_status}`);
         }
       } catch (error) {
         setError(error instanceof Error ? error.message : 'Payment verification failed');

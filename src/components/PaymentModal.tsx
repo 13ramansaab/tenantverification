@@ -19,10 +19,6 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
         setIsProcessing(true);
         setError(null);
 
-        if (!window.Cashfree) {
-          throw new Error('Cashfree SDK not loaded');
-        }
-
         const orderId = `TRF-${uuidv4()}`;
         const payload = {
           orderId,
@@ -33,26 +29,35 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
             customerName: `${customerData.firstName} ${customerData.lastName}`,
           },
         };
+        console.log('Sending to create-order:', payload);
 
         const response = await axios.post('/.netlify/functions/create-order', payload);
-        const { payment_session_id, order_status } = response.data;
+        console.log('Received from create-order:', response.data);
+        const { payment_session_id } = response.data;
 
-        if (!payment_session_id || order_status !== 'ACTIVE') {
-          throw new Error('Failed to initialize payment');
+        if (!payment_session_id) {
+          throw new Error('Failed to retrieve payment session ID');
         }
 
-        const cashfree = Cashfree({
-          mode: 'sandbox',
+        // Initialize Cashfree Payment
+        const cashfree = new window.Cashfree.HandlePayment();
+        await cashfree.init({
+          sessionId: payment_session_id,
+          returnUrl: `${window.location.origin}/payment/success?order_id={order_id}`,
         });
 
-        const paymentOptions = {
-          paymentSessionId: payment_session_id,
-          returnUrl: `${window.location.origin}/payment/success?order_id=${orderId}`,
-        };
+        await cashfree.renderPaymentElements({
+          container: '#payment-form',
+          style: {
+            backgroundColor: '#ffffff',
+            color: '#11385b',
+            fontFamily: 'Lato',
+            fontSize: '14px',
+            errorColor: '#ff0000',
+            theme: 'light'
+          }
+        });
 
-        await cashfree.checkout(paymentOptions);
-        console.log('Payment initiated successfully');
-        await onPaymentComplete();
       } catch (error) {
         console.error('Payment initialization error:', error);
         setError(error instanceof Error ? error.message : 'Payment initialization failed');
@@ -61,7 +66,7 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
     };
 
     initializePayment();
-  }, [customerData, onPaymentComplete]);
+  }, [customerData]);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">

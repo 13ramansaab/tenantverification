@@ -47,8 +47,8 @@ const handler: Handler = async (event) => {
         customer_name: customerDetails.customerName,
       },
       order_meta: {
-        return_url: 'https://registertenant.netlify.app/payment/success?order_id={order_id}',
-        notify_url: 'https://registertenant.netlify.app/payment/webhook',
+        return_url: `${process.env.URL || 'http://localhost:8888'}/payment/success?order_id={order_id}`,
+        notify_url: `${process.env.URL || 'http://localhost:8888'}/payment/webhook`,
       },
       order_note: "Tenant Registration Fee"
     };
