@@ -1,4 +1,4 @@
-// src/cashfree.d.ts
+// src/types/cashfree.d.ts
 interface CashfreeInstance {
   checkout: (options: {
     paymentSessionId: string;
@@ -7,7 +7,6 @@ interface CashfreeInstance {
 }
 
 interface CashfreeConstructor {
-  new (config: { mode: 'sandbox' | 'production' }): CashfreeInstance;
   (config: { mode: 'sandbox' | 'production' }): CashfreeInstance;
 }
 
