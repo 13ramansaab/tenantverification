@@ -11,7 +11,7 @@ interface PaymentModalProps {
 
 declare global {
   interface Window {
-    CFPaymentSdk: any;
+    Cashfree: any;
   }
 }
 
@@ -24,6 +24,18 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
       try {
         setIsProcessing(true);
         setError(null);
+
+        // Wait for Cashfree SDK to load
+        if (typeof window.Cashfree === 'undefined') {
+          await new Promise<void>((resolve) => {
+            const checkSDK = setInterval(() => {
+              if (typeof window.Cashfree !== 'undefined') {
+                clearInterval(checkSDK);
+                resolve();
+              }
+            }, 100);
+          });
+        }
 
         const orderId = `TRF-${uuidv4()}`;
         
@@ -43,39 +55,31 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
           throw new Error('Failed to create payment session');
         }
 
-        const paymentConfig = {
-          paymentSessionId: payment_session_id,
-          returnUrl: `${window.location.origin}/payment/success?order_id={order_id}`,
-        };
-
-        if (!window.CFPaymentSdk) {
-          throw new Error('Payment SDK not loaded');
-        }
-
-        await window.CFPaymentSdk.init(paymentConfig);
-        
-        window.CFPaymentSdk.doPayment({
-          orderToken: payment_session_id,
-          orderAmount: 250,
-          customerDetails: {
-            customerId: customerData.mobileNo,
-            customerEmail: customerData.email,
-            customerPhone: customerData.mobileNo,
-            customerName: `${customerData.firstName} ${customerData.lastName}`
-          },
-          onSuccess: async (data: any) => {
-            console.log('Payment success:', data);
-            await onPaymentComplete();
-          },
-          onFailure: (error: Error) => {
-            console.error('Payment failed:', error);
-            setError('Payment failed. Please try again.');
-          }
+        const cashfree = new window.Cashfree({
+          mode: "sandbox"
         });
+
+        await cashfree.init({
+          orderToken: payment_session_id
+        });
+        
+        await cashfree.redirect();
+
+        // The redirect() method will handle the navigation, 
+        // but we'll set up event handlers just in case
+        cashfree.on('payment_success', async (data: any) => {
+          console.log('Payment success:', data);
+          await onPaymentComplete();
+        });
+
+        cashfree.on('payment_failure', (data: any) => {
+          console.error('Payment failed:', data);
+          setError('Payment failed. Please try again.');
+        });
+
       } catch (error) {
         console.error('Payment initialization error:', error);
         setError(error instanceof Error ? error.message : 'Payment initialization failed');
-      } finally {
         setIsProcessing(false);
       }
     };
