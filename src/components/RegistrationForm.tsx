@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { TenantFormData } from '../types';
 import { fetchPGOwnerByMobile, saveTenantData, fetchStates, fetchDistricts, fetchPoliceStations, uploadImage } from '../api';
 import { saveFormData, loadFormData, clearFormData } from '../utils/formPersistence';
+import PaymentModal from './PaymentModal';
 import SuccessPage from './SuccessPage';
 import Footer from './Footer';
 
@@ -50,6 +51,7 @@ function RegistrationForm() {
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [addressProofFile, setAddressProofFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPayment, setShowPayment] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -196,6 +198,17 @@ function RegistrationForm() {
 
     try {
       setIsSubmitting(true);
+      setShowPayment(true);
+    } catch (error) {
+      console.error('Error submitting form:', error);
+      setSubmitError('An error occurred while submitting the form. Please try again.');
+      setIsSubmitting(false);
+    }
+  };
+
+  const handlePaymentComplete = async () => {
+    try {
+      setIsSubmitting(true);
 
       const uploadPromises: Promise<string>[] = [];
       
@@ -219,6 +232,7 @@ function RegistrationForm() {
       };
 
       await saveTenantData(formData.presentAddress.ownerMobileNo, updatedFormData);
+      setShowPayment(false);
       setShowSuccess(true);
     } catch (error) {
       console.error('Error saving tenant data:', error);
@@ -655,10 +669,21 @@ function RegistrationForm() {
               }`}
               disabled={isSubmitting}
             >
-              {isSubmitting ? 'Processing...' : 'Submit Registration'}
+              {isSubmitting ? 'Processing...' : 'Proceed to Payment'}
             </button>
           </form>
         </div>
+
+        {showPayment && (
+          <PaymentModal
+            onClose={() => {
+              setShowPayment(false);
+              setIsSubmitting(false);
+            }}
+            customerData={formData}
+            onPaymentComplete={handlePaymentComplete}
+          />
+        )}
 
         <Footer />
       </div>
