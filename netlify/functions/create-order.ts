@@ -48,8 +48,8 @@ const handler: Handler = async (event) => {
       },
       {
         headers: {
-          'x-client-id': '9323391ef4bcb0d44ef73df5b8933239',
-          'x-client-secret': 'cfsk_ma_prod_0b1c8a6bfe068a82b9feaca242d1bbee_161c1b2a',
+          'x-client-id': 'TEST105185193663f7fff515e413933291581501',
+          'x-client-secret': 'cfsk_ma_test_c99e1951302855b07919f8e17dfc3847_84b7809b',
           'x-api-version': '2022-09-01',
           'Content-Type': 'application/json'
         }
