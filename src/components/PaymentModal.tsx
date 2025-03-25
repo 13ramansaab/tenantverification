@@ -9,7 +9,7 @@ interface PaymentModalProps {
   onPaymentComplete: () => Promise<void>;
 }
 
-const PaymentModal = ({ onClose, customerData }: PaymentModalProps) => {
+const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModalProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -37,23 +37,28 @@ const PaymentModal = ({ onClose, customerData }: PaymentModalProps) => {
           throw new Error('Failed to initialize payment');
         }
 
-        // Initialize Cashfree Payment
-        const cashfree = new (window as any).Cashfree.HandlePayment();
-        await cashfree.init({
-          sessionId: payment_session_id,
-          returnUrl: `${window.location.origin}/payment/success?order_id={order_id}`,
+        // Check if Cashfree SDK is loaded
+        if (!window.Cashfree) {
+          throw new Error('Cashfree SDK not loaded');
+        }
+
+        // Initialize Cashfree
+        const cashfree = window.Cashfree({
+          mode: 'sandbox', // Use 'production' for live environment
         });
 
-        await cashfree.renderPaymentElements({
-          container: '#payment-form',
-          style: {
-            backgroundColor: '#ffffff',
-            color: '#11385b',
-            fontFamily: 'Lato',
-            fontSize: '14px',
-            errorColor: '#ff0000',
-            theme: 'light'
-          }
+        // Payment options
+        const paymentOptions = {
+          paymentSessionId: payment_session_id,
+          returnUrl: `${window.location.origin}/payment/success?order_id=${orderId}`,
+        };
+
+        // Trigger payment
+        cashfree.checkout(paymentOptions).then(() => {
+          console.log('Payment initiated successfully');
+          onPaymentComplete(); // Call this if you want to handle completion here
+        }).catch((err) => {
+          throw new Error('Checkout failed: ' + err.message);
         });
 
       } catch (error) {
@@ -64,7 +69,7 @@ const PaymentModal = ({ onClose, customerData }: PaymentModalProps) => {
     };
 
     initializePayment();
-  }, [customerData]);
+  }, [customerData, onPaymentComplete]);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
