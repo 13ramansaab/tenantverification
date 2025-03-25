@@ -29,8 +29,8 @@ const handler: Handler = async (event) => {
     console.log('Request payload:', { orderId, customerDetails });
 
     const cashfreeApiUrl = 'https://sandbox.cashfree.com/pg/orders';
-    const cashfreeAppId = process.env.YOUR_SANDBOX_APP_ID;
-    const cashfreeSecretKey = process.env.YOUR_SANDBOX_SECRET_KEY;
+    const cashfreeAppId = process.env.CASHFREE_APP_ID;
+    const cashfreeSecretKey = process.env.CASHFREE_SECRET_KEY;
 
     if (!cashfreeAppId || !cashfreeSecretKey) {
       throw new Error('Missing Cashfree credentials');
@@ -65,7 +65,7 @@ const handler: Handler = async (event) => {
     });
 
     console.log('Cashfree response:', response.data);
-    const { payment_session_id, order_id, payment_link } = response.data;
+    const { payment_session_id, order_id, order_status } = response.data;
 
     return {
       statusCode: 200,
@@ -73,7 +73,7 @@ const handler: Handler = async (event) => {
       body: JSON.stringify({
         payment_session_id,
         order_id,
-        payment_link
+        order_status
       }),
     };
   } catch (error) {
