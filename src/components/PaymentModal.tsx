@@ -58,6 +58,9 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
           }
         });
 
+        // Call onPaymentComplete after successful payment initialization
+        await onPaymentComplete();
+
       } catch (error) {
         console.error('Payment initialization error:', error);
         setError(error instanceof Error ? error.message : 'Payment initialization failed');
@@ -66,7 +69,7 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
     };
 
     initializePayment();
-  }, [customerData]);
+  }, [customerData, onPaymentComplete]);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">

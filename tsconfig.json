@@ -18,7 +18,10 @@
     "noImplicitAny": true,
     "forceConsistentCasingInFileNames": true,
     "declaration": false,
-    "typeRoots": ["./node_modules/@types", "./src/types"]
+    "typeRoots": ["./node_modules/@types", "./src/types"],
+    "paths": {
+      "@/*": ["./src/*"]
+    }
   },
   "include": ["src"],
   "references": [{ "path": "./tsconfig.node.json" }]
