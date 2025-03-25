@@ -39,7 +39,7 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
 
         const response = await axios.post<CashfreeOrderResponse>('/.netlify/functions/create-order', payload);
         console.log('Received from create-order:', response.data);
-        const { payment_session_id, order_id } = response.data;
+        const { payment_session_id } = response.data;
 
         if (!payment_session_id) {
           throw new Error('Failed to retrieve payment session ID');
