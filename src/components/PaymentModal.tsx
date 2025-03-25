@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 import type { TenantFormData } from '../types';
@@ -13,6 +13,7 @@ interface PaymentModalProps {
 const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModalProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const paymentFormRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const initializePayment = async () => {
@@ -38,17 +39,25 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
 
         const response = await axios.post<CashfreeOrderResponse>('/.netlify/functions/create-order', payload);
         console.log('Received from create-order:', response.data);
-        const { payment_session_id } = response.data;
+        const { payment_session_id, order_id } = response.data;
 
         if (!payment_session_id) {
           throw new Error('Failed to retrieve payment session ID');
         }
 
         // Initialize Cashfree Payment
-        await window.Cashfree.checkout({
-          paymentSessionId: payment_session_id,
-          returnUrl: `${window.location.origin}/payment/success?order_id={order_id}`,
-          mode: 'TEST',
+        await window.Cashfree.initialiseDropin({
+          orderToken: payment_session_id,
+          onSuccess: async (data) => {
+            console.log('Payment successful:', data);
+            await onPaymentComplete();
+          },
+          onFailure: (data) => {
+            console.error('Payment failed:', data);
+            setError(`Payment failed: ${data.transaction.txStatus}`);
+            setIsProcessing(false);
+          },
+          components: ["order-details", "card", "netbanking", "upi"],
           style: {
             backgroundColor: '#ffffff',
             color: '#11385b',
@@ -58,9 +67,6 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
             theme: 'light'
           }
         });
-
-        // Call onPaymentComplete after successful payment initialization
-        await onPaymentComplete();
 
       } catch (error) {
         console.error('Payment initialization error:', error);
@@ -97,7 +103,7 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
           </div>
         )}
 
-        <div id="payment-form" className="mb-4">
+        <div id="payment-form" ref={paymentFormRef} className="mb-4">
           {isProcessing && (
             <div className="text-center py-4">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
