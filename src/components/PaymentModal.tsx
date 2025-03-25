@@ -3,16 +3,16 @@ import { TenantFormData } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 import axios from 'axios';
 
-interface PaymentModalProps {
-  onClose: () => void;
-  customerData: TenantFormData;
-  onPaymentComplete: () => Promise<void>;
-}
-
 declare global {
   interface Window {
     Cashfree: any;
   }
+}
+
+interface PaymentModalProps {
+  onClose: () => void;
+  customerData: TenantFormData;
+  onPaymentComplete: () => Promise<void>;
 }
 
 const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModalProps) => {
@@ -24,11 +24,6 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
       try {
         setIsProcessing(true);
         setError(null);
-
-        // Check if Cashfree SDK is loaded
-        if (typeof window.Cashfree === 'undefined') {
-          throw new Error('Cashfree SDK not loaded');
-        }
 
         const orderId = `TRF-${uuidv4()}`;
         
@@ -48,17 +43,15 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
           throw new Error('Failed to create payment session');
         }
 
-        // Initialize Cashfree SDK
-        const cashfree = new window.Cashfree({
-          mode: 'sandbox'
+        if (typeof window.Cashfree === 'undefined') {
+          throw new Error('Cashfree SDK not loaded');
+        }
+
+        const cashfree = new window.Cashfree();
+        await cashfree.initialise({
+          paymentSessionId: payment_session_id
         });
 
-        await cashfree.init({
-          paymentSessionId: payment_session_id,
-          returnUrl: window.location.origin + '/payment/success'
-        });
-
-        // Render payment form
         cashfree.redirect();
         
       } catch (error) {
@@ -69,7 +62,7 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
     };
 
     initializePayment();
-  }, [customerData, onPaymentComplete]);
+  }, [customerData]);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
