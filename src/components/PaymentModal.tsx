@@ -67,15 +67,18 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
 
         const cashfree = new window.Cashfree();
         console.log('Cashfree instance:', cashfree); // Debug the instance
-        // Use checkout instead of initialiseDropin
-        cashfree.checkout({
+        cashfree.drop(document.getElementById('payment-form'), {
           paymentSessionId: payment_session_id,
-          redirectTarget: '_self', // Or '_modal' for popup
-          returnUrl: `${window.location.origin}/payment/success?order_id=${orderId}`,
+          components: ['order-details', 'card', 'upi', 'paylater'],
+          onSuccess: async (data: any) => {
+            console.log('Payment success:', data);
+            await onPaymentComplete();
+            setIsProcessing(false);
+          },
+          onFailure: (error: any) => {
+            throw new Error(`Payment failed: ${error.message}`);
+          },
         });
-
-        // Note: checkout redirects, so onPaymentComplete might need to be handled on the return page
-        // await onPaymentComplete();
 
       } catch (error) {
         console.error('Payment initialization error:', error);
