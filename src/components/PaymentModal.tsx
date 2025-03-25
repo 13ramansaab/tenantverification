@@ -46,26 +46,10 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
         }
 
         // Initialize Cashfree Payment
-        await window.Cashfree.initialiseDropin({
-          orderToken: payment_session_id,
-          onSuccess: async (data) => {
-            console.log('Payment successful:', data);
-            await onPaymentComplete();
-          },
-          onFailure: (data) => {
-            console.error('Payment failed:', data);
-            setError(`Payment failed: ${data.transaction.txStatus}`);
-            setIsProcessing(false);
-          },
-          components: ["order-details", "card", "netbanking", "upi"],
-          style: {
-            backgroundColor: '#ffffff',
-            color: '#11385b',
-            fontFamily: 'Lato',
-            fontSize: '14px',
-            errorColor: '#ff0000',
-            theme: 'light'
-          }
+        const cashfree = window.Cashfree.create();
+        await cashfree.init({
+          paymentSessionId: payment_session_id,
+          returnUrl: `${window.location.origin}/payment/success`,
         });
 
       } catch (error) {
@@ -76,7 +60,7 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
     };
 
     initializePayment();
-  }, [customerData, onPaymentComplete]);
+  }, [customerData]);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
