@@ -11,7 +11,7 @@ interface PaymentModalProps {
 
 declare global {
   interface Window {
-    Cashfree: any;
+    CFPaymentSdk: any;
   }
 }
 
@@ -20,7 +20,7 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const initializeOrder = async () => {
+    const initializePayment = async () => {
       try {
         setIsProcessing(true);
         setError(null);
@@ -44,7 +44,30 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
           throw new Error('Failed to create payment session');
         }
 
-        initializePaymentUI(payment_session_id);
+        // Initialize Cashfree SDK
+        const paymentConfig = {
+          paymentSessionId: payment_session_id,
+          returnUrl: `${window.location.origin}/payment/success?order_id={order_id}`,
+        };
+
+        window.CFPaymentSdk.init(paymentConfig)
+          .then(() => {
+            window.CFPaymentSdk.doPayment({
+              orderToken: payment_session_id,
+              orderAmount: 250,
+              customerDetails: {
+                customerId: customerData.mobileNo,
+                customerEmail: customerData.email,
+                customerPhone: customerData.mobileNo,
+                customerName: `${customerData.firstName} ${customerData.lastName}`
+              }
+            });
+          })
+          .catch((error: Error) => {
+            console.error('Payment initialization error:', error);
+            setError(error.message || 'Failed to initialize payment');
+          });
+
       } catch (error) {
         console.error('Payment initialization error:', error);
         setError(error instanceof Error ? error.message : 'Payment initialization failed');
@@ -53,88 +76,8 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
       }
     };
 
-    initializeOrder();
+    initializePayment();
   }, [customerData]);
-
-  const initializePaymentUI = async (sessionId: string) => {
-    try {
-      const cashfree = new window.Cashfree({
-        mode: "sandbox"
-      });
-
-      await cashfree.init({
-        sessionId: sessionId
-      });
-
-      // Style configuration for UPI components
-      const style = {
-        base: {
-          fontSize: '16px',
-          color: '#333',
-          '::placeholder': {
-            color: '#999'
-          }
-        }
-      };
-
-      // Create UPI collect component
-      const upiCollect = cashfree.create('upiCollect', {
-        style
-      });
-
-      // Mount UPI collect component
-      upiCollect.mount('#upi-collect-container');
-
-      // Create UPI QR component
-      const upiQR = cashfree.create('qrCode', {
-        style
-      });
-
-      // Mount UPI QR component
-      upiQR.mount('#upi-qr-container');
-
-      // Create common UPI apps component
-      const upiApps = cashfree.create('upiApps', {
-        style
-      });
-
-      // Mount UPI apps component
-      upiApps.mount('#upi-apps-container');
-
-      // Handle payment submission
-      const handlePay = async (component: any) => {
-        try {
-          setIsProcessing(true);
-          setError(null);
-
-          const result = await cashfree.pay({
-            paymentMethod: component,
-            paymentSessionId: sessionId
-          });
-
-          if (result.error) {
-            throw new Error(result.error.message);
-          }
-
-          await onPaymentComplete();
-        } catch (error) {
-          console.error('Payment error:', error);
-          setError(error instanceof Error ? error.message : 'Payment failed');
-        } finally {
-          setIsProcessing(false);
-        }
-      };
-
-      // Add event listeners
-      upiCollect.on('submit', () => handlePay(upiCollect));
-      upiQR.on('submit', () => handlePay(upiQR));
-      upiApps.on('select', () => handlePay(upiApps));
-
-    } catch (error) {
-      console.error('Error initializing payment UI:', error);
-      setError(error instanceof Error ? error.message : 'Failed to initialize payment interface');
-    }
-  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -152,7 +95,7 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
 
         <div className="mb-6">
           <p className="text-lg font-medium mb-2">Amount to pay: ₹250</p>
-          <p className="text-sm text-gray-600">Choose a payment method below</p>
+          <p className="text-sm text-gray-600">Please wait while we initialize the payment...</p>
         </div>
 
         {error && (
@@ -164,25 +107,9 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
         {isProcessing && (
           <div className="mb-4 text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
-            <p className="text-gray-600">Processing payment...</p>
+            <p className="text-gray-600">Initializing payment...</p>
           </div>
         )}
-
-        <div className="space-y-6">
-          {/* UPI Payment Options */}
-          <div>
-            <h3 className="text-lg font-medium mb-4">Pay using UPI</h3>
-            
-            {/* UPI Collect */}
-            <div id="upi-collect-container" className="mb-4"></div>
-            
-            {/* UPI QR Code */}
-            <div id="upi-qr-container" className="mb-4"></div>
-            
-            {/* UPI Apps */}
-            <div id="upi-apps-container"></div>
-          </div>
-        </div>
 
         <div className="mt-6 text-center">
           <p className="text-xs text-gray-500">
