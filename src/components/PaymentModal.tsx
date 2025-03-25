@@ -18,6 +18,7 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
     return new Promise((resolve, reject) => {
       if (window.Cashfree) {
         console.log('Cashfree SDK already loaded:', window.Cashfree);
+        console.log('Cashfree properties:', Object.keys(window.Cashfree));
         resolve(true);
       } else {
         const script = document.createElement('script');
@@ -25,6 +26,7 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
         script.async = true;
         script.onload = () => {
           console.log('Cashfree SDK loaded:', window.Cashfree);
+          console.log('Cashfree properties after load:', Object.keys(window.Cashfree));
           resolve(true);
         };
         script.onerror = () => reject(new Error('Failed to load Cashfree SDK'));
@@ -67,22 +69,29 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
 
         const cashfree = new window.Cashfree();
         console.log('Cashfree instance:', cashfree);
-        // Safely inspect methods without __proto__
-        console.log('Available methods:', Object.getOwnPropertyNames(Object.getPrototypeOf(cashfree)));
+        const cashfreeProto = Object.getPrototypeOf(cashfree);
+        console.log('Cashfree prototype:', cashfreeProto);
+        console.log('Available methods:', Object.getOwnPropertyNames(cashfreeProto));
 
-        cashfree.drop(document.getElementById('payment-form'), {
-          paymentSessionId: payment_session_id,
-          components: ['order-details', 'card', 'upi', 'paylater'], // Explicitly defined, no need for dropinComponents array
-          onSuccess: async (data: any) => {
-            console.log('Payment success:', data);
-            await onPaymentComplete();
-            setIsProcessing(false);
-          },
-          onFailure: (error: any) => {
-            console.error('Payment failure:', error);
-            throw new Error(`Payment failed: ${error.message}`);
-          },
-        });
+        if (typeof cashfree.drop === 'function') {
+          console.log('Using drop method');
+          cashfree.drop(document.getElementById('payment-form'), {
+            paymentSessionId: payment_session_id,
+            components: ['order-details', 'card', 'upi', 'paylater'],
+            onSuccess: async (data: any) => {
+              console.log('Payment success:', data);
+              await onPaymentComplete();
+              setIsProcessing(false);
+            },
+            onFailure: (error: any) => {
+              console.error('Payment failure:', error);
+              throw new Error(`Payment failed: ${error.message}`);
+            },
+          });
+        } else {
+          console.error('drop is not a function on cashfree instance');
+          throw new Error('Cashfree SDK does not support drop method');
+        }
 
       } catch (error) {
         console.error('Payment initialization error:', error);
