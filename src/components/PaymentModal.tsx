@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { TenantFormData } from '../types';
-import { v4 as uuidv4 } from 'uuid';
 import axios from 'axios';
+import { v4 as uuidv4 } from 'uuid';
+import { TenantFormData } from '../types';
+import { CashfreeOrderResponse } from '../types/cashfree';
 
 interface PaymentModalProps {
   onClose: () => void;
@@ -31,7 +32,7 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
         };
         console.log('Sending to create-order:', payload);
 
-        const response = await axios.post('/.netlify/functions/create-order', payload);
+        const response = await axios.post<CashfreeOrderResponse>('/.netlify/functions/create-order', payload);
         console.log('Received from create-order:', response.data);
         const { payment_session_id } = response.data;
 
