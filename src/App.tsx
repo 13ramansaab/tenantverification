@@ -1,5 +1,5 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { useState } from 'react';
+import { Routes, Route } from 'react-router-dom';
 import RegistrationForm from './components/RegistrationForm';
 import ContactUs from './components/ContactUs';
 import TermsAndConditions from './components/TermsAndConditions';
@@ -7,26 +7,35 @@ import PaymentSuccess from './components/PaymentSuccess';
 import PaymentCancel from './components/PaymentCancel';
 import SuccessPage from './components/SuccessPage';
 
+const App = () => {
+  const [paymentSuccess, setPaymentSuccess] = useState(false);
 
-interface RegistrationFormProps {
-  onPaymentComplete: () => Promise<void>;
-}
+  const handlePaymentComplete = () => {
+    setPaymentSuccess(true);
+  };
 
-function App() {
-  const handlePaymentComplete = async () => {
-    console.log('Payment completed successfully');
-    // Add any async logic here if needed
+  const handleBack = () => {
+    setPaymentSuccess(false);
   };
 
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<RegistrationForm onPaymentComplete={handlePaymentComplete} />} />
-        <Route path="/payment/success" element={<PaymentSuccess />} />
-        <Route path="*" element={<div>404 - Page Not Found</div>} />
-      </Routes>
-    </BrowserRouter>
+    <Routes>
+      <Route
+        path="/"
+        element={
+          paymentSuccess ? (
+            <SuccessPage onBack={handleBack} />
+          ) : (
+            <RegistrationForm onPaymentComplete={handlePaymentComplete} />
+          )
+        }
+      />
+      <Route path="/contact" element={<ContactUs />} />
+      <Route path="/terms" element={<TermsAndConditions />} />
+      <Route path="/payment/success" element={<PaymentSuccess />} />
+      <Route path="/payment/cancel" element={<PaymentCancel />} />
+    </Routes>
   );
-}
+};
 
 export default App;
