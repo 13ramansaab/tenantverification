@@ -1,1 +1,3 @@
-/* /index.html 200
+# Ensure SPA routing doesn’t override functions
+/payment/success  /payment/success  200
+/*  /index.html  200
