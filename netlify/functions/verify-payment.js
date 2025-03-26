@@ -1,11 +1,11 @@
-import { Handler } from '@netlify/functions';
-import axios from 'axios';
+const axios = require('axios');
 
-const handler: Handler = async (event) => {
+exports.handler = async (event) => {
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
     'Access-Control-Allow-Methods': 'GET, OPTIONS',
+    'Content-Type': 'application/json',
   };
 
   if (event.httpMethod === 'OPTIONS') {
@@ -31,7 +31,6 @@ const handler: Handler = async (event) => {
       ? `https://api.cashfree.com/pg/orders/${orderId}`
       : `https://sandbox.cashfree.com/pg/orders/${orderId}`;
 
-    // Log environment variables (safely)
     console.log('Environment check:', {
       hasAppId: !!process.env.CASHFREE_APP_ID,
       hasSecretKey: !!process.env.CASHFREE_SECRET_KEY,
@@ -65,10 +64,7 @@ const handler: Handler = async (event) => {
 
     return {
       statusCode: 200,
-      headers: {
-        ...headers,
-        'Content-Type': 'application/json',
-      },
+      headers,
       body: JSON.stringify({
         order_status: response.data.order_status,
       }),
@@ -76,7 +72,6 @@ const handler: Handler = async (event) => {
   } catch (error) {
     console.error('Payment verification error:', error.response?.data || error.message);
     
-    // Enhanced error response
     const errorResponse = {
       error: error.response?.data?.message || error.message || 'Server error',
       details: error.response?.data || null,
@@ -85,13 +80,8 @@ const handler: Handler = async (event) => {
 
     return {
       statusCode: error.response?.status || 500,
-      headers: {
-        ...headers,
-        'Content-Type': 'application/json',
-      },
+      headers,
       body: JSON.stringify(errorResponse),
     };
   }
 };
-
-export { handler };

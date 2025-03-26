@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
-import { CashfreeOrderStatus } from '../types/cashfree';
+import type { CashfreeOrderStatus } from '../types/cashfree';
 
 const PaymentSuccess = () => {
   const [searchParams] = useSearchParams();
@@ -20,7 +20,13 @@ const PaymentSuccess = () => {
         console.log('Verifying payment for order:', orderId);
 
         const response = await axios.get<CashfreeOrderStatus>(
-          `/.netlify/functions/verify-payment?orderId=${orderId}`
+          `/.netlify/functions/verify-payment`,
+          {
+            params: { orderId },
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          }
         );
 
         console.log('Payment verification response:', response.data);
