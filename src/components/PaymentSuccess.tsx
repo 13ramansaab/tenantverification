@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { CashfreeOrderStatus } from '@/types/cashfree';
-import { AxiosError } from 'axios';
+import { AxiosError } from 'axios'; // Import AxiosError for specific typing
 
 const PaymentSuccess = () => {
   const [searchParams] = useSearchParams();
@@ -21,24 +21,20 @@ const PaymentSuccess = () => {
 
         console.log('Verifying payment for orderId:', orderId);
         const response = await axios.get<CashfreeOrderStatus>(
-          `/.netlify/functions/verify-payments?orderId=${orderId}`,
-          { headers: { Accept: 'application/json' } }
+          `/.netlify/functions/verify-payments?orderId=${orderId}`
         );
         console.log('Verification response:', response.data);
-
-        if (!response.data || typeof response.data.order_status !== 'string') {
-          throw new Error('Invalid verification response');
-        }
 
         if (response.data.order_status === 'PAID') {
           setIsPaid(true);
           setTimeout(() => {
             navigate('/', { state: { paymentSuccess: true } });
-          }, 5000);
+          }, 5000); // 5-second delay
         } else {
-          throw new Error(`Payment status: ${response.data.order_status || 'unknown'}`);
+          throw new Error(`Payment status: ${response.data.order_status}`);
         }
-      } catch (error: unknown) {
+      } catch (error: unknown) { // Explicitly type as unknown
+        // Handle as Error or AxiosError
         const isAxiosError = (err: any): err is AxiosError => err.isAxiosError || (err.response && err.request);
         const err = error as Error | AxiosError;
 
