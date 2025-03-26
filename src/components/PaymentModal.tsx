@@ -5,6 +5,11 @@ import type { TenantFormData } from '../types';
 import type { CashfreeOrderResponse, Cashfree } from '@/types/cashfree';
 import { AxiosError } from 'axios';
 
+// Define the expected error response shape from the server
+interface ServerErrorResponse {
+  error?: string;
+}
+
 interface PaymentModalProps {
   onClose: () => void;
   customerData: TenantFormData;
@@ -92,8 +97,8 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
         cashfree.checkout(checkoutOptions);
         console.log('Checkout initiated; expecting redirect');
       } catch (error: unknown) {
-        const isAxiosError = (err: any): err is AxiosError => err.isAxiosError || (err.response && err.request);
-        const err = error as Error | AxiosError;
+        const isAxiosError = (err: any): err is AxiosError<ServerErrorResponse> => err.isAxiosError || (err.response && err.request);
+        const err = error as Error | AxiosError<ServerErrorResponse>;
 
         console.error('Payment initialization error:', {
           message: err instanceof Error ? err.message : 'Unknown error',
