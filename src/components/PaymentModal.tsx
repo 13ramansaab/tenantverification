@@ -10,17 +10,22 @@ interface PaymentModalProps {
   onPaymentComplete: () => Promise<void>;
 }
 
+// Define Cashfree type separately to avoid global conflicts
+interface CashfreeInstance {
+  checkout: (options: {
+    paymentSessionId: string;
+    redirectTarget: '_self' | '_blank';
+    returnUrl: string;
+  }) => Promise<{
+    error?: { message: string };
+    redirect?: boolean;
+    paymentDetails?: { paymentMessage: string };
+  }>;
+}
+
 declare global {
   interface Window {
-    Cashfree: {
-      new(config: { mode: 'sandbox' | 'production' }): {
-        checkout: (options: {
-          paymentSessionId: string;
-          redirectTarget: '_self' | '_blank';
-          returnUrl: string;
-        }) => Promise<void>;
-      };
-    };
+    Cashfree?: (config: { mode: 'sandbox' | 'production' }) => CashfreeInstance;
   }
 }
 
@@ -38,10 +43,13 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
         script.src = 'https://sdk.cashfree.com/js/v3/cashfree.js';
         script.async = true;
         script.onload = () => {
-          console.log('Cashfree SDK loaded');
+          console.log('Cashfree SDK loaded successfully');
           resolve();
         };
-        script.onerror = () => reject(new Error('Failed to load Cashfree SDK'));
+        script.onerror = () => {
+          console.error('Failed to load Cashfree SDK');
+          reject(new Error('Failed to load Cashfree SDK'));
+        };
         document.head.appendChild(script);
       }
     });
@@ -64,10 +72,15 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
           },
         };
 
-        const response = await axios.post<CashfreeOrderResponse>('/.netlify/functions/create-order', payload);
-        const { payment_session_id } = response.data;
+        console.log('Creating order with payload:', payload);
+        const response = await axios.post<CashfreeOrderResponse>(
+          '/.netlify/functions/create-orders',
+          payload
+        );
+        console.log('Order creation response:', response.data);
 
-        if (!payment_session_id) {
+        const { payment_session_id } = response.data;
+        if (!payment_session_id || typeof payment_session_id !== 'string' || !payment_session_id.startsWith('session_')) {
           throw new Error('Invalid payment session ID received');
         }
 
@@ -77,32 +90,60 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
           throw new Error('Cashfree SDK not loaded');
         }
 
-        const cashfree = new window.Cashfree({
-          mode: process.env.NODE_ENV === 'production' ? 'production' : 'sandbox'
+        const cashfree = window.Cashfree({
+          mode: process.env.NODE_ENV === 'production' ? 'production' : 'sandbox',
         });
+        console.log('Cashfree instance initialized:', cashfree);
 
-        await cashfree.checkout({
+        if (!cashfree.checkout) {
+          throw new Error('Cashfree checkout method is unavailable');
+        }
+
+        const checkoutOptions = {
           paymentSessionId: payment_session_id,
-          redirectTarget: '_self',
-          returnUrl: `${window.location.origin}/payment/success?order_id=${orderId}`
-        });
+          redirectTarget: '_self' as const,
+          returnUrl: `${window.location.origin}/payment/success?order_id=${orderId}`,
+        };
+        console.log('Initiating checkout with options:', checkoutOptions);
 
+        const result = await cashfree.checkout(checkoutOptions);
+        console.log('Checkout result:', result);
+
+        if (result.error) {
+          throw new Error(`Checkout failed: ${result.error.message}`);
+        }
+
+        if (result.redirect) {
+          console.log('Redirecting to returnUrl');
+          // No further action; redirect handles flow
+        } else if (result.paymentDetails) {
+          console.log('Payment completed without redirect:', result.paymentDetails);
+          await onPaymentComplete(); // No arguments expected
+          setIsProcessing(false);
+        }
       } catch (error) {
-        console.error('Payment initialization error:', error);
+        console.error('Payment initialization error:', {
+          message: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined,
+        });
         setError(error instanceof Error ? error.message : 'Payment initialization failed');
         setIsProcessing(false);
       }
     };
 
     initializePayment();
-  }, [customerData]);
+  }, [customerData, onPaymentComplete]);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-semibold">Complete Payment</h2>
-          <button onClick={onClose} disabled={isProcessing} className="text-gray-500 hover:text-gray-700">
+          <button
+            onClick={onClose}
+            disabled={isProcessing}
+            className="text-gray-500 hover:text-gray-700"
+          >
             ✕
           </button>
         </div>
