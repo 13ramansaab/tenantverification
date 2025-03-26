@@ -17,19 +17,28 @@ const PaymentSuccess = () => {
           throw new Error('No order ID received from payment gateway');
         }
 
+        console.log('Verifying payment for order:', orderId);
+
         const response = await axios.get<CashfreeOrderStatus>(
           `/.netlify/functions/verify-payment?orderId=${orderId}`
         );
+
+        console.log('Payment verification response:', response.data);
 
         if (response.data.order_status === 'PAID') {
           setTimeout(() => {
             navigate('/', { state: { paymentSuccess: true } });
           }, 3000);
         } else {
-          throw new Error(`Payment failed: ${response.data.order_status}`);
+          throw new Error(`Payment verification failed: ${response.data.order_status}`);
         }
       } catch (error) {
-        setError(error instanceof Error ? error.message : 'Payment verification failed');
+        console.error('Payment verification error:', error);
+        setError(
+          error instanceof Error 
+            ? error.message 
+            : 'Payment verification failed. Please contact support if payment was deducted.'
+        );
       } finally {
         setIsProcessing(false);
       }
