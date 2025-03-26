@@ -17,8 +17,19 @@ export interface CashfreeOrderStatus {
   };
 }
 // types/cashfree.d.ts
+export interface CashfreeOrderResponse {
+  payment_session_id: string;
+  order_id: string;
+  order_status: string;
+}
+
+export interface CashfreeOrderStatus {
+  order_status: string; // e.g., "PAID", "PENDING", "FAILED"
+}
+
+// Existing Cashfree interface (unchanged)
 interface PayOptions {
-  paymentMethod: any; // The component created by cashfree.create
+  paymentMethod: any;
   paymentSessionId: string;
   returnUrl?: string;
   redirect?: 'if_required' | 'always' | 'never';
@@ -32,9 +43,7 @@ interface CheckoutOptions {
 
 interface ComponentOptions {
   values?: Record<string, any>;
-  style?: {
-    base?: Record<string, string>;
-  };
+  style?: { base?: Record<string, string> };
 }
 
 interface PaymentComponent {
@@ -55,7 +64,7 @@ interface Cashfree {
 
 interface CashfreeConstructor {
   (config: { mode: 'sandbox' | 'production' }): Cashfree;
-  new (): Cashfree; // For backward compatibility
+  new (): Cashfree;
 }
 
 declare global {
