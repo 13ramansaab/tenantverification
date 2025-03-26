@@ -1,8 +1,9 @@
+// src/components/PaymentModal.tsx
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 import type { TenantFormData } from '../types';
-import type { CashfreeOrderResponse, Cashfree } from '@/types/cashfree'; // Import from cashfree.ts
+import type { CashfreeOrderResponse, Cashfree } from '@/types/cashfree'; // Should resolve to src/types/cashfree.ts
 
 interface PaymentModalProps {
   onClose: () => void;
@@ -76,7 +77,6 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
         });
         console.log('Cashfree instance initialized:', cashfree);
 
-        // Since checkout is optional in the type, check its existence
         if (!cashfree.checkout) {
           throw new Error('Cashfree checkout method is unavailable');
         }
@@ -88,13 +88,8 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
         };
         console.log('Initiating checkout with options:', checkoutOptions);
 
-        // `checkout` in cashfree.ts is void, but docs suggest it returns a Promise in newer SDK versions
-        // For now, treat it as void per the type, but handle redirect implicitly
         cashfree.checkout(checkoutOptions);
         console.log('Checkout initiated; expecting redirect');
-
-        // Since checkout is void and redirects, we don’t await a result here
-        // onPaymentComplete will be called by PaymentSuccess.tsx after verification
       } catch (error) {
         console.error('Payment initialization error:', {
           message: error instanceof Error ? error.message : String(error),

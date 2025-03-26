@@ -1,3 +1,4 @@
+// src/types/cashfree.ts
 export interface CashfreeOrderResponse {
   payment_session_id: string;
   order_id: string;
@@ -11,30 +12,30 @@ export interface CashfreeOrderStatus {
   order_amount: number;
 }
 
-interface PayOptions {
+export interface PayOptions {
   paymentMethod: any;
   paymentSessionId: string;
   returnUrl?: string;
   redirect?: 'if_required' | 'always' | 'never';
 }
 
-interface CheckoutOptions {
+export interface CheckoutOptions {
   paymentSessionId: string;
   redirectTarget?: '_self' | '_blank' | '_modal';
   returnUrl?: string;
 }
 
-interface ComponentOptions {
+export interface ComponentOptions {
   values?: Record<string, any>;
   style?: { base?: Record<string, string> };
 }
 
-interface PaymentComponent {
+export interface PaymentComponent {
   mount: (container: HTMLElement | string) => void;
   on: (event: string, callback: (data: any) => void) => void;
 }
 
-interface Cashfree {
+export interface Cashfree {
   pay?: (options: PayOptions) => Promise<{
     error?: { message: string };
     paymentDetails?: { paymentMessage: string };
@@ -45,7 +46,7 @@ interface Cashfree {
   version?: string;
 }
 
-interface CashfreeConstructor {
+export interface CashfreeConstructor {
   (config: { mode: 'sandbox' | 'production' }): Cashfree;
   new (): Cashfree;
 }
