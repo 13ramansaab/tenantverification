@@ -1,7 +1,6 @@
-import { Handler } from '@netlify/functions';
-import axios from 'axios';
+const axios = require('axios');
 
-const handler: Handler = async (event) => {
+exports.handler = async (event) => {
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
@@ -76,7 +75,6 @@ const handler: Handler = async (event) => {
   } catch (error) {
     console.error('Payment verification error:', error.response?.data || error.message);
     
-    // Enhanced error response
     const errorResponse = {
       error: error.response?.data?.message || error.message || 'Server error',
       details: error.response?.data || null,
@@ -93,5 +91,3 @@ const handler: Handler = async (event) => {
     };
   }
 };
-
-export { handler };
