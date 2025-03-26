@@ -3,6 +3,7 @@ import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 import type { TenantFormData } from '../types';
 import type { CashfreeOrderResponse, Cashfree } from '@/types/cashfree';
+import { AxiosError } from 'axios'; // Import AxiosError for specific typing
 
 interface PaymentModalProps {
   onClose: () => void;
@@ -94,18 +95,22 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
 
         cashfree.checkout(checkoutOptions);
         console.log('Checkout initiated; expecting redirect');
-      } catch (error) {
+      } catch (error: unknown) { // Explicitly type as unknown
+        // Handle as Error or AxiosError
+        const isAxiosError = (err: any): err is AxiosError => err.isAxiosError || (err.response && err.request);
+        const err = error as Error | AxiosError;
+
         console.error('Payment initialization error:', {
-          message: error instanceof Error ? error.message : 'Unknown error',
-          stack: error instanceof Error ? error.stack : undefined,
-          axiosError: error.response ? {
-            status: error.response.status,
-            data: error.response.data,
+          message: err instanceof Error ? err.message : 'Unknown error',
+          stack: err instanceof Error ? err.stack : undefined,
+          axiosError: isAxiosError(err) ? {
+            status: err.response?.status,
+            data: err.response?.data,
           } : 'No response data',
         });
         setError(
-          error instanceof Error
-            ? error.message
+          err instanceof Error
+            ? err.message
             : 'Payment initialization failed. Please try again or contact support.'
         );
         setIsProcessing(false);
