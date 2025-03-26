@@ -1,21 +1,15 @@
-import { useState } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom'; // Ensure this line is present
 import RegistrationForm from './components/RegistrationForm';
-import ContactUs from './components/ContactUs';
-import TermsAndConditions from './components/TermsAndConditions';
 import PaymentSuccess from './components/PaymentSuccess';
-import PaymentCancel from './components/PaymentCancel';
-import SuccessPage from './components/SuccessPage';
-
 
 interface RegistrationFormProps {
-  onPaymentComplete: () => Promise<void>; // Assuming this is the prop type from RegistrationForm
+  onPaymentComplete: () => Promise<void>;
 }
 
 function App() {
   const handlePaymentComplete = async () => {
     console.log('Payment completed successfully');
-    // Add any async logic here if needed, e.g., API calls or state updates
+    // Add any async logic here if needed
   };
 
   return (
