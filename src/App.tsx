@@ -7,35 +7,17 @@ import PaymentSuccess from './components/PaymentSuccess';
 import PaymentCancel from './components/PaymentCancel';
 import SuccessPage from './components/SuccessPage';
 
-const App = () => {
-  const [paymentSuccess, setPaymentSuccess] = useState(false);
-
-  const handlePaymentComplete = () => {
-    setPaymentSuccess(true);
-  };
-
-  const handleBack = () => {
-    setPaymentSuccess(false);
-  };
-
+function App() {
   return (
-    <Routes>
-      <Route
-        path="/"
-        element={
-          paymentSuccess ? (
-            <SuccessPage onBack={handleBack} />
-          ) : (
-            <RegistrationForm onPaymentComplete={handlePaymentComplete} />
-          )
-        }
-      />
-      <Route path="/contact" element={<ContactUs />} />
-      <Route path="/terms" element={<TermsAndConditions />} />
-      <Route path="/payment/success" element={<PaymentSuccess />} />
-      <Route path="/payment/cancel" element={<PaymentCancel />} />
-    </Routes>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<RegistrationForm />} />
+        <Route path="/payment/success" element={<PaymentSuccess />} />
+        {/* Optional: Catch-all route for 404 */}
+        <Route path="*" element={<div>404 - Page Not Found</div>} />
+      </Routes>
+    </BrowserRouter>
   );
-};
+}
 
 export default App;

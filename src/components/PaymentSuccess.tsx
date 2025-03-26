@@ -22,7 +22,7 @@ const PaymentSuccess = () => {
         console.log('Verifying payment for orderId:', orderId);
         const response = await axios.get<CashfreeOrderStatus>(
           `/.netlify/functions/verify-payments?orderId=${orderId}`,
-          { headers: { Accept: 'application/json' } } // Force JSON response
+          { headers: { Accept: 'application/json' } }
         );
         console.log('Verification response:', response.data);
 
