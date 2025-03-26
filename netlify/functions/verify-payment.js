@@ -38,6 +38,8 @@ exports.handler = async (event) => {
       throw new Error('Missing Cashfree credentials');
     }
 
+    console.log('Verifying payment for order:', orderId);
+
     const response = await axios.get(cashfreeApiUrl, {
       headers: {
         'x-client-id': cashfreeAppId,
@@ -47,46 +49,31 @@ exports.handler = async (event) => {
     });
 
     const { data } = response;
+    console.log('Cashfree API response:', data);
 
     // Validate response data
-    if (!data || !data.order_status || !data.order_id || !data.order_amount) {
+    if (!data || !data.order_status) {
       throw new Error('Invalid response from Cashfree');
-    }
-
-    // Validate order amount
-    if (data.order_amount !== 250) {
-      throw new Error('Invalid order amount');
     }
 
     // Map Cashfree status to standardized status
     let status;
-    switch (data.order_status.toUpperCase()) {
-      case 'PAID':
-        status = 'PAID';
-        break;
-      case 'ACTIVE':
-        status = 'PENDING';
-        break;
-      case 'EXPIRED':
-      case 'CANCELLED':
-      case 'FAILED':
-        status = 'FAILED';
-        break;
-      default:
-        status = 'UNKNOWN';
+    const orderStatus = data.order_status.toUpperCase();
+    
+    // Check if there are any payments
+    const hasSuccessfulPayment = data.payments?.some(
+      payment => payment.payment_status.toUpperCase() === 'SUCCESS'
+    );
+
+    if (orderStatus === 'PAID' && hasSuccessfulPayment) {
+      status = 'PAID';
+    } else if (orderStatus === 'ACTIVE') {
+      status = 'PENDING';
+    } else {
+      status = 'FAILED';
     }
 
-    // Check payment details for additional verification
-    if (status === 'PAID') {
-      if (!data.payments || !data.payments.length) {
-        status = 'FAILED';
-      } else {
-        const payment = data.payments[0];
-        if (payment.payment_status !== 'SUCCESS') {
-          status = 'FAILED';
-        }
-      }
-    }
+    console.log('Mapped payment status:', status);
 
     return {
       statusCode: 200,

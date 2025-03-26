@@ -17,14 +17,14 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
   const loadCashfreeSDK = () => {
     return new Promise((resolve, reject) => {
       if (window.Cashfree) {
-        console.log('Cashfree SDK already loaded:', window.Cashfree);
+        console.log('Cashfree SDK already loaded');
         resolve(true);
       } else {
         const script = document.createElement('script');
         script.src = 'https://sdk.cashfree.com/js/v3/cashfree.js';
         script.async = true;
         script.onload = () => {
-          console.log('Cashfree SDK loaded:', window.Cashfree);
+          console.log('Cashfree SDK loaded');
           resolve(true);
         };
         script.onerror = () => reject(new Error('Failed to load Cashfree SDK'));
@@ -49,16 +49,14 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
             customerName: `${customerData.firstName} ${customerData.lastName}`,
           },
         };
-        console.log('Sending to create-order:', payload);
 
-        const response = await axios.post<CashfreeOrderResponse>('/.netlify/functions/create-orders', payload);
-        console.log('Received from create-order:', response.data);
+        // Changed from create-orders to create-order
+        const response = await axios.post<CashfreeOrderResponse>('/.netlify/functions/create-order', payload);
         const { payment_session_id } = response.data;
 
-        if (!payment_session_id || typeof payment_session_id !== 'string' || !payment_session_id.startsWith('session_')) {
-          throw new Error('Invalid payment_session_id received from server');
+        if (!payment_session_id) {
+          throw new Error('Invalid payment session ID received');
         }
-        console.log('Valid payment_session_id:', payment_session_id);
 
         await loadCashfreeSDK();
 
@@ -66,25 +64,15 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
           throw new Error('Cashfree SDK not loaded');
         }
 
-        const cashfree = window.Cashfree({
+        const cashfree = new window.Cashfree({
           mode: process.env.NODE_ENV === 'production' ? 'production' : 'sandbox',
         });
-        console.log('Cashfree instance:', cashfree);
-        console.log('Instance own properties:', Object.keys(cashfree));
-        console.log('Instance version:', cashfree.version);
 
-        if (typeof cashfree.checkout === 'function') {
-          console.log('Using checkout method');
-          cashfree.checkout({
-            paymentSessionId: payment_session_id,
-            redirectTarget: '_self', // Full redirect to /payment/success
-            returnUrl: `${window.location.origin}/payment/success?order_id=${orderId}`,
-          });
-          // No setIsProcessing(false) here since we redirect
-        } else {
-          console.error('Checkout method not available');
-          throw new Error('Cashfree SDK lacks checkout method');
-        }
+        await cashfree.checkout({
+          paymentSessionId: payment_session_id,
+          redirectTarget: '_self',
+          returnUrl: `${window.location.origin}/payment/success?order_id=${orderId}`,
+        });
 
       } catch (error) {
         console.error('Payment initialization error:', error);
@@ -94,7 +82,7 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
     };
 
     initializePayment();
-  }, [customerData, onPaymentComplete]);
+  }, [customerData]);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
