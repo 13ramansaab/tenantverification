@@ -66,7 +66,6 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
           throw new Error('Cashfree SDK not loaded');
         }
 
-        // Initialize Cashfree with mode (adjust 'production' or 'sandbox' as needed)
         const cashfree = window.Cashfree({ mode: 'production' }); // Use 'sandbox' for testing
         console.log('Cashfree instance:', cashfree);
         console.log('Instance own properties:', Object.keys(cashfree));
@@ -77,39 +76,59 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
           throw new Error('Payment container not found');
         }
 
-        // Create a payment component (e.g., card payment)
-        const paymentComponent = cashfree.create('card', {
-          values: {}, // Add card-specific options if needed
-          style: {
-            base: { fontSize: '16px' },
-          },
-        });
-        console.log('Payment component created:', paymentComponent);
-
-        // Mount the component to the container
-        paymentComponent.mount(container);
-        console.log('Payment component mounted to container');
-
         if (typeof cashfree.pay === 'function') {
           console.log('Using pay method');
-          const payResult = await cashfree.pay({
-            paymentMethod: paymentComponent,
-            paymentSessionId: payment_session_id,
-            returnUrl: `${window.location.origin}/payment/success?order_id=${orderId}`,
-            redirect: 'if_required', // Redirect only if necessary
-          });
-          console.log('Pay result:', payResult);
 
-          if (payResult.error) {
-            throw new Error(`Payment failed: ${payResult.error.message || JSON.stringify(payResult.error)}`);
-          }
-          if (payResult.paymentDetails) {
-            console.log('Payment success:', payResult.paymentDetails);
-            await onPaymentComplete();
-          }
-          if (payResult.redirect) {
-            console.log('Payment redirected');
-            // Handle redirect if needed
+          // Check if create is available for component-based payment
+          if (typeof cashfree.create === 'function') {
+            const paymentComponent = cashfree.create('card', {
+              values: {},
+              style: {
+                base: { fontSize: '16px' },
+              },
+            });
+            console.log('Payment component created:', paymentComponent);
+            paymentComponent.mount(container);
+            console.log('Payment component mounted to container');
+
+            const payResult = await cashfree.pay({
+              paymentMethod: paymentComponent,
+              paymentSessionId: payment_session_id,
+              returnUrl: `${window.location.origin}/payment/success?order_id=${orderId}`,
+              redirect: 'if_required',
+            });
+            console.log('Pay result:', payResult);
+
+            if (payResult.error) {
+              throw new Error(`Payment failed: ${payResult.error.message || JSON.stringify(payResult.error)}`);
+            }
+            if (payResult.paymentDetails) {
+              console.log('Payment success:', payResult.paymentDetails);
+              await onPaymentComplete();
+            }
+            if (payResult.redirect) {
+              console.log('Payment redirected');
+            }
+          } else {
+            console.log('Create method not available, attempting direct pay');
+            // Fallback to direct pay without component
+            const payResult = await cashfree.pay({
+              paymentSessionId: payment_session_id,
+              returnUrl: `${window.location.origin}/payment/success?order_id=${orderId}`,
+              redirect: 'if_required',
+            });
+            console.log('Direct pay result:', payResult);
+
+            if (payResult.error) {
+              throw new Error(`Payment failed: ${payResult.error.message || JSON.stringify(payResult.error)}`);
+            }
+            if (payResult.paymentDetails) {
+              console.log('Payment success:', payResult.paymentDetails);
+              await onPaymentComplete();
+            }
+            if (payResult.redirect) {
+              console.log('Payment redirected');
+            }
           }
           setIsProcessing(false);
         } else if (typeof cashfree.checkout === 'function') {
