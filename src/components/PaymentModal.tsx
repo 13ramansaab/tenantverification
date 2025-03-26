@@ -2,8 +2,8 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
-import type { TenantFormData } from '../types'; // Adjust path
-import type { CashfreeOrderResponse } from '../types/cashfree'; // Adjust path
+import type { TenantFormData } from '../types';
+import type { CashfreeOrderResponse } from '../types/cashfree';
 
 interface PaymentModalProps {
   onClose: () => void;
@@ -78,10 +78,9 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
           console.log('Using checkout method');
           cashfree.checkout({
             paymentSessionId: payment_session_id,
-            redirectTarget: '_self', // Full redirect to /payment/success
+            redirectTarget: '_self',
             returnUrl: `${window.location.origin}/payment/success?order_id=${orderId}`,
           });
-          // No setIsProcessing(false) here since we redirect
         } else {
           console.error('Checkout method not available');
           throw new Error('Cashfree SDK lacks checkout method');

@@ -1,3 +1,4 @@
+// src/components/PaymentSuccess.tsx
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
@@ -18,12 +19,12 @@ const PaymentSuccess = () => {
         }
 
         const response = await axios.get<CashfreeOrderStatus>(
-          `/.netlify/functions/verify-payment?orderId=${orderId}`
+          `/.netlify/functions/verify-payments?orderId=${orderId}`
         );
 
         if (response.data.order_status === 'PAID') {
           setTimeout(() => {
-            navigate('/', { state: { paymentSuccess: true } });
+            navigate('/', { state: { paymentSuccess: true } }); // Pass state to App.tsx
           }, 3000);
         } else {
           throw new Error(`Payment failed: ${response.data.order_status}`);
@@ -80,7 +81,7 @@ const PaymentSuccess = () => {
             </div>
             <h1 className="text-2xl font-bold text-gray-900 mb-4">Payment Successful!</h1>
             <p className="text-gray-600 mb-8">
-              Your payment has been processed successfully. You will be redirected back to the registration page.
+              Your payment has been processed successfully. Redirecting to registration page...
             </p>
           </>
         )}

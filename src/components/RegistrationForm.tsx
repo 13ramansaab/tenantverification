@@ -3,7 +3,6 @@ import { TenantFormData } from '../types';
 import { fetchPGOwnerByMobile, saveTenantData, fetchStates, fetchDistricts, fetchPoliceStations, uploadImage } from '../api';
 import { saveFormData, loadFormData, clearFormData } from '../utils/formPersistence';
 import PaymentModal from './PaymentModal';
-import SuccessPage from './SuccessPage';
 import Footer from './Footer';
 
 const defaultFormData: TenantFormData = {
@@ -18,11 +17,11 @@ const defaultFormData: TenantFormData = {
     firstName: '',
     lastName: '',
     mobileNo: '',
-    relation: 'S/O'
+    relation: 'S/O',
   },
   presentAddress: {
     ownerMobileNo: '',
-    pgName: ''
+    pgName: '',
   },
   permanentAddress: {
     state: '',
@@ -33,17 +32,21 @@ const defaultFormData: TenantFormData = {
     locality: '',
     city: '',
     tehsil: '',
-    pincode: ''
+    pincode: '',
   },
   documents: {
     photoIdType: 'Aadhar Card',
     photoIdNumber: '',
     photo: '',
-    addressProof: ''
-  }
+    addressProof: '',
+  },
 };
 
-function RegistrationForm() {
+interface RegistrationFormProps {
+  onPaymentComplete: () => void; // Define the prop type to fix TS error
+}
+
+function RegistrationForm({ onPaymentComplete }: RegistrationFormProps) {
   const [formData, setFormData] = useState<TenantFormData>(defaultFormData);
   const [states, setStates] = useState<string[]>([]);
   const [districts, setDistricts] = useState<string[]>([]);
@@ -52,7 +55,6 @@ function RegistrationForm() {
   const [addressProofFile, setAddressProofFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -87,8 +89,8 @@ function RegistrationForm() {
           permanentAddress: {
             ...prev.permanentAddress,
             district: '',
-            policeStation: ''
-          }
+            policeStation: '',
+          },
         }));
       }
     };
@@ -107,8 +109,8 @@ function RegistrationForm() {
           ...prev,
           permanentAddress: {
             ...prev.permanentAddress,
-            policeStation: ''
-          }
+            policeStation: '',
+          },
         }));
       }
     };
@@ -124,16 +126,16 @@ function RegistrationForm() {
             ...prev,
             presentAddress: {
               ...prev.presentAddress,
-              pgName: owner.pgName || ''
-            }
+              pgName: owner.pgName || '',
+            },
           }));
         } else {
           setFormData(prev => ({
             ...prev,
             presentAddress: {
               ...prev.presentAddress,
-              pgName: ''
-            }
+              pgName: '',
+            },
           }));
         }
       }
@@ -159,14 +161,14 @@ function RegistrationForm() {
       } else {
         setAddressProofFile(file);
       }
-      
+
       const objectUrl = URL.createObjectURL(file);
       setFormData(prev => ({
         ...prev,
         documents: {
           ...prev.documents,
-          [field]: objectUrl
-        }
+          [field]: objectUrl,
+        },
       }));
     }
   };
@@ -175,7 +177,6 @@ function RegistrationForm() {
     setFormData(defaultFormData);
     setPhotoFile(null);
     setAddressProofFile(null);
-    setShowSuccess(false);
     setTermsAccepted(false);
     setSubmitError(null);
     clearFormData();
@@ -211,11 +212,11 @@ function RegistrationForm() {
       setIsSubmitting(true);
 
       const uploadPromises: Promise<string>[] = [];
-      
+
       if (photoFile) {
         uploadPromises.push(uploadImage(photoFile, `tenants/${formData.mobileNo}/photo`));
       }
-      
+
       if (addressProofFile) {
         uploadPromises.push(uploadImage(addressProofFile, `tenants/${formData.mobileNo}/addressProof`));
       }
@@ -227,13 +228,13 @@ function RegistrationForm() {
         documents: {
           ...formData.documents,
           photo: photoUrl || formData.documents.photo,
-          addressProof: addressProofUrl || formData.documents.addressProof
-        }
+          addressProof: addressProofUrl || formData.documents.addressProof,
+        },
       };
 
       await saveTenantData(formData.presentAddress.ownerMobileNo, updatedFormData);
       setShowPayment(false);
-      setShowSuccess(true);
+      onPaymentComplete(); // Trigger App.tsx to show SuccessPage
     } catch (error) {
       console.error('Error saving tenant data:', error);
       setSubmitError('Error saving tenant data. Please try again.');
@@ -241,10 +242,6 @@ function RegistrationForm() {
       setIsSubmitting(false);
     }
   };
-
-  if (showSuccess) {
-    return <SuccessPage onBack={resetForm} />;
-  }
 
   return (
     <>
@@ -261,7 +258,7 @@ function RegistrationForm() {
               Clear Form
             </button>
           </div>
-          
+
           {submitError && (
             <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
               {submitError}
@@ -278,7 +275,7 @@ function RegistrationForm() {
                   placeholder="First Name"
                   className="border rounded p-2"
                   value={formData.firstName}
-                  onChange={(e) => setFormData({...formData, firstName: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
                   required
                   disabled={isSubmitting}
                 />
@@ -287,7 +284,7 @@ function RegistrationForm() {
                   placeholder="Last Name"
                   className="border rounded p-2"
                   value={formData.lastName}
-                  onChange={(e) => setFormData({...formData, lastName: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
                   required
                   disabled={isSubmitting}
                 />
@@ -296,7 +293,7 @@ function RegistrationForm() {
                   placeholder="Mobile Number"
                   className="border rounded p-2"
                   value={formData.mobileNo}
-                  onChange={(e) => setFormData({...formData, mobileNo: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, mobileNo: e.target.value })}
                   required
                   disabled={isSubmitting}
                 />
@@ -305,7 +302,7 @@ function RegistrationForm() {
                   placeholder="Email"
                   className="border rounded p-2"
                   value={formData.email}
-                  onChange={(e) => setFormData({...formData, email: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   required
                   disabled={isSubmitting}
                 />
@@ -314,14 +311,14 @@ function RegistrationForm() {
                   placeholder="Date of Birth"
                   className="border rounded p-2"
                   value={formData.dateOfBirth}
-                  onChange={(e) => setFormData({...formData, dateOfBirth: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
                   required
                   disabled={isSubmitting}
                 />
                 <select
                   className="border rounded p-2"
                   value={formData.religion}
-                  onChange={(e) => setFormData({...formData, religion: e.target.value as any})}
+                  onChange={(e) => setFormData({ ...formData, religion: e.target.value as any })}
                   required
                   disabled={isSubmitting}
                 >
@@ -334,7 +331,7 @@ function RegistrationForm() {
                 <select
                   className="border rounded p-2"
                   value={formData.occupation}
-                  onChange={(e) => setFormData({...formData, occupation: e.target.value as any})}
+                  onChange={(e) => setFormData({ ...formData, occupation: e.target.value as any })}
                   required
                   disabled={isSubmitting}
                 >
@@ -352,10 +349,12 @@ function RegistrationForm() {
                   placeholder="First Name"
                   className="border rounded p-2"
                   value={formData.familyMember.firstName}
-                  onChange={(e) => setFormData({
-                    ...formData,
-                    familyMember: {...formData.familyMember, firstName: e.target.value}
-                  })}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      familyMember: { ...formData.familyMember, firstName: e.target.value },
+                    })
+                  }
                   required
                   disabled={isSubmitting}
                 />
@@ -364,10 +363,12 @@ function RegistrationForm() {
                   placeholder="Last Name"
                   className="border rounded p-2"
                   value={formData.familyMember.lastName}
-                  onChange={(e) => setFormData({
-                    ...formData,
-                    familyMember: {...formData.familyMember, lastName: e.target.value}
-                  })}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      familyMember: { ...formData.familyMember, lastName: e.target.value },
+                    })
+                  }
                   required
                   disabled={isSubmitting}
                 />
@@ -376,20 +377,24 @@ function RegistrationForm() {
                   placeholder="Mobile Number"
                   className="border rounded p-2"
                   value={formData.familyMember.mobileNo}
-                  onChange={(e) => setFormData({
-                    ...formData,
-                    familyMember: {...formData.familyMember, mobileNo: e.target.value}
-                  })}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      familyMember: { ...formData.familyMember, mobileNo: e.target.value },
+                    })
+                  }
                   required
                   disabled={isSubmitting}
                 />
                 <select
                   className="border rounded p-2"
                   value={formData.familyMember.relation}
-                  onChange={(e) => setFormData({
-                    ...formData,
-                    familyMember: {...formData.familyMember, relation: e.target.value as any}
-                  })}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      familyMember: { ...formData.familyMember, relation: e.target.value as any },
+                    })
+                  }
                   required
                   disabled={isSubmitting}
                 >
@@ -410,10 +415,12 @@ function RegistrationForm() {
                   placeholder="Owner Mobile Number"
                   className="border rounded p-2"
                   value={formData.presentAddress.ownerMobileNo}
-                  onChange={(e) => setFormData({
-                    ...formData,
-                    presentAddress: {...formData.presentAddress, ownerMobileNo: e.target.value}
-                  })}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      presentAddress: { ...formData.presentAddress, ownerMobileNo: e.target.value },
+                    })
+                  }
                   required
                   disabled={isSubmitting}
                 />
@@ -436,10 +443,12 @@ function RegistrationForm() {
                 <select
                   className="border rounded p-2"
                   value={formData.permanentAddress.state}
-                  onChange={(e) => setFormData({
-                    ...formData,
-                    permanentAddress: {...formData.permanentAddress, state: e.target.value}
-                  })}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      permanentAddress: { ...formData.permanentAddress, state: e.target.value },
+                    })
+                  }
                   required
                   disabled={isSubmitting}
                 >
@@ -451,10 +460,12 @@ function RegistrationForm() {
                 <select
                   className="border rounded p-2"
                   value={formData.permanentAddress.district}
-                  onChange={(e) => setFormData({
-                    ...formData,
-                    permanentAddress: {...formData.permanentAddress, district: e.target.value}
-                  })}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      permanentAddress: { ...formData.permanentAddress, district: e.target.value },
+                    })
+                  }
                   required
                   disabled={!formData.permanentAddress.state || isSubmitting}
                 >
@@ -466,10 +477,12 @@ function RegistrationForm() {
                 <select
                   className="border rounded p-2"
                   value={formData.permanentAddress.policeStation}
-                  onChange={(e) => setFormData({
-                    ...formData,
-                    permanentAddress: {...formData.permanentAddress, policeStation: e.target.value}
-                  })}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      permanentAddress: { ...formData.permanentAddress, policeStation: e.target.value },
+                    })
+                  }
                   required
                   disabled={!formData.permanentAddress.district || isSubmitting}
                 >
@@ -483,10 +496,12 @@ function RegistrationForm() {
                   placeholder="House No."
                   className="border rounded p-2"
                   value={formData.permanentAddress.houseNo}
-                  onChange={(e) => setFormData({
-                    ...formData,
-                    permanentAddress: {...formData.permanentAddress, houseNo: e.target.value}
-                  })}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      permanentAddress: { ...formData.permanentAddress, houseNo: e.target.value },
+                    })
+                  }
                   required
                   disabled={isSubmitting}
                 />
@@ -495,10 +510,12 @@ function RegistrationForm() {
                   placeholder="Street Name"
                   className="border rounded p-2"
                   value={formData.permanentAddress.streetName}
-                  onChange={(e) => setFormData({
-                    ...formData,
-                    permanentAddress: {...formData.permanentAddress, streetName: e.target.value}
-                  })}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      permanentAddress: { ...formData.permanentAddress, streetName: e.target.value },
+                    })
+                  }
                   required
                   disabled={isSubmitting}
                 />
@@ -507,10 +524,12 @@ function RegistrationForm() {
                   placeholder="Colony/Locality/Area"
                   className="border rounded p-2"
                   value={formData.permanentAddress.locality}
-                  onChange={(e) => setFormData({
-                    ...formData,
-                    permanentAddress: {...formData.permanentAddress, locality: e.target.value}
-                  })}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      permanentAddress: { ...formData.permanentAddress, locality: e.target.value },
+                    })
+                  }
                   required
                   disabled={isSubmitting}
                 />
@@ -519,10 +538,12 @@ function RegistrationForm() {
                   placeholder="Village/Town/City"
                   className="border rounded p-2"
                   value={formData.permanentAddress.city}
-                  onChange={(e) => setFormData({
-                    ...formData,
-                    permanentAddress: {...formData.permanentAddress, city: e.target.value}
-                  })}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      permanentAddress: { ...formData.permanentAddress, city: e.target.value },
+                    })
+                  }
                   required
                   disabled={isSubmitting}
                 />
@@ -531,10 +552,12 @@ function RegistrationForm() {
                   placeholder="Tehsil/Block"
                   className="border rounded p-2"
                   value={formData.permanentAddress.tehsil}
-                  onChange={(e) => setFormData({
-                    ...formData,
-                    permanentAddress: {...formData.permanentAddress, tehsil: e.target.value}
-                  })}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      permanentAddress: { ...formData.permanentAddress, tehsil: e.target.value },
+                    })
+                  }
                   required
                   disabled={isSubmitting}
                 />
@@ -543,10 +566,12 @@ function RegistrationForm() {
                   placeholder="Pincode"
                   className="border rounded p-2"
                   value={formData.permanentAddress.pincode}
-                  onChange={(e) => setFormData({
-                    ...formData,
-                    permanentAddress: {...formData.permanentAddress, pincode: e.target.value}
-                  })}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      permanentAddress: { ...formData.permanentAddress, pincode: e.target.value },
+                    })
+                  }
                   required
                   disabled={isSubmitting}
                 />
@@ -560,10 +585,12 @@ function RegistrationForm() {
                 <select
                   className="border rounded p-2"
                   value={formData.documents.photoIdType}
-                  onChange={(e) => setFormData({
-                    ...formData,
-                    documents: {...formData.documents, photoIdType: e.target.value as any}
-                  })}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      documents: { ...formData.documents, photoIdType: e.target.value as any },
+                    })
+                  }
                   required
                   disabled={isSubmitting}
                 >
@@ -576,10 +603,12 @@ function RegistrationForm() {
                   placeholder="Photo ID Number"
                   className="border rounded p-2"
                   value={formData.documents.photoIdNumber}
-                  onChange={(e) => setFormData({
-                    ...formData,
-                    documents: {...formData.documents, photoIdNumber: e.target.value}
-                  })}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      documents: { ...formData.documents, photoIdNumber: e.target.value },
+                    })
+                  }
                   required
                   disabled={isSubmitting}
                 />
@@ -598,11 +627,7 @@ function RegistrationForm() {
                   />
                   {formData.documents.photo && (
                     <div className="mt-2">
-                      <img
-                        src={formData.documents.photo}
-                        alt="Preview"
-                        className="h-32 object-contain"
-                      />
+                      <img src={formData.documents.photo} alt="Preview" className="h-32 object-contain" />
                     </div>
                   )}
                 </div>
@@ -621,11 +646,7 @@ function RegistrationForm() {
                   />
                   {formData.documents.addressProof && (
                     <div className="mt-2">
-                      <img
-                        src={formData.documents.addressProof}
-                        alt="Preview"
-                        className="h-32 object-contain"
-                      />
+                      <img src={formData.documents.addressProof} alt="Preview" className="h-32 object-contain" />
                     </div>
                   )}
                 </div>
@@ -651,10 +672,11 @@ function RegistrationForm() {
                     I agree to the Terms & Conditions
                   </label>
                   <p className="text-gray-500 mt-1">
-                    I hereby declare that all the information provided above is true and correct to the best of my knowledge. 
-                    I understand that I will be solely responsible for any discrepancy found in the information provided. 
-                    I agree that any false statements, misrepresentations, or omissions may result in the rejection of my 
-                    registration or subsequent legal action. I authorize the verification of the information provided above.
+                    I hereby declare that all the information provided above is true and correct to the best of my
+                    knowledge. I understand that I will be solely responsible for any discrepancy found in the
+                    information provided. I agree that any false statements, misrepresentations, or omissions may result
+                    in the rejection of my registration or subsequent legal action. I authorize the verification of the
+                    information provided above.
                   </p>
                 </div>
               </div>
@@ -663,9 +685,7 @@ function RegistrationForm() {
             <button
               type="submit"
               className={`w-full py-2 px-4 rounded transition-colors ${
-                isSubmitting 
-                  ? 'bg-gray-400 cursor-not-allowed'
-                  : 'bg-blue-500 hover:bg-blue-600 text-white'
+                isSubmitting ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-500 hover:bg-blue-600 text-white'
               }`}
               disabled={isSubmitting}
             >

@@ -1,6 +1,6 @@
 // src/App.tsx
-import { useState } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Routes, Route, useLocation } from 'react-router-dom';
 import RegistrationForm from './components/RegistrationForm';
 import ContactUs from './components/ContactUs';
 import TermsAndConditions from './components/TermsAndConditions';
@@ -10,6 +10,13 @@ import SuccessPage from './components/SuccessPage';
 
 const App = () => {
   const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.state?.paymentSuccess) {
+      setPaymentSuccess(true);
+    }
+  }, [location]);
 
   const handlePaymentComplete = () => {
     setPaymentSuccess(true);
