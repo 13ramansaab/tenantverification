@@ -1,11 +1,13 @@
+// functions/verify-payments.js
 const axios = require('axios');
 
 exports.handler = async (event) => {
+  console.log('Function invoked:', event);
+
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
     'Access-Control-Allow-Methods': 'GET, OPTIONS',
-    'Content-Type': 'application/json',
   };
 
   if (event.httpMethod === 'OPTIONS') {
@@ -22,6 +24,7 @@ exports.handler = async (event) => {
 
   try {
     const orderId = event.queryStringParameters?.orderId;
+    console.log('Order ID:', orderId);
     if (!orderId) {
       throw new Error('Order ID is required');
     }
@@ -30,15 +33,18 @@ exports.handler = async (event) => {
     const cashfreeApiUrl = isProduction
       ? `https://api.cashfree.com/pg/orders/${orderId}`
       : `https://sandbox.cashfree.com/pg/orders/${orderId}`;
-
     const cashfreeAppId = process.env.CASHFREE_APP_ID;
     const cashfreeSecretKey = process.env.CASHFREE_SECRET_KEY;
+
+    console.log('Config:', {
+      url: cashfreeApiUrl,
+      appIdSet: !!cashfreeAppId,
+      secretKeySet: !!cashfreeSecretKey,
+    });
 
     if (!cashfreeAppId || !cashfreeSecretKey) {
       throw new Error('Missing Cashfree credentials');
     }
-
-    console.log('Verifying payment for order:', orderId);
 
     const response = await axios.get(cashfreeApiUrl, {
       headers: {
@@ -48,52 +54,26 @@ exports.handler = async (event) => {
       },
     });
 
-    const { data } = response;
-    console.log('Cashfree API response:', data);
-
-    // Validate response data
-    if (!data || !data.order_status) {
-      throw new Error('Invalid response from Cashfree');
-    }
-
-    // Map Cashfree status to standardized status
-    let status;
-    const orderStatus = data.order_status.toUpperCase();
-    
-    // Check if there are any payments
-    const hasSuccessfulPayment = data.payments?.some(
-      payment => payment.payment_status.toUpperCase() === 'SUCCESS'
-    );
-
-    if (orderStatus === 'PAID' && hasSuccessfulPayment) {
-      status = 'PAID';
-    } else if (orderStatus === 'ACTIVE') {
-      status = 'PENDING';
-    } else {
-      status = 'FAILED';
-    }
-
-    console.log('Mapped payment status:', status);
-
+    console.log('Cashfree response:', response.data);
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({
-        order_status: status,
-        order_id: data.order_id,
-        order_amount: data.order_amount,
-        payment_details: data.payments || [],
-      }),
+      body: JSON.stringify({ order_status: response.data.order_status }),
     };
   } catch (error) {
-    console.error('Payment verification error:', error.response?.data || error.message);
-    
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      response: error.response ? {
+        status: error.response.status,
+        data: error.response.data,
+      } : null,
+    });
     return {
       statusCode: error.response?.status || 500,
       headers,
       body: JSON.stringify({
         error: error.response?.data?.message || error.message || 'Server error',
-        timestamp: new Date().toISOString(),
       }),
     };
   }
