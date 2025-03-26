@@ -1,45 +1,71 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
-import type { CashfreeOrderStatus } from '../types/cashfree';
+
+interface PaymentVerificationResponse {
+  order_status: 'PAID' | 'PENDING' | 'FAILED' | 'UNKNOWN';
+  order_id: string;
+  order_amount: number;
+  payment_details?: Array<{
+    payment_status: string;
+    payment_message?: string;
+  }>;
+}
 
 const PaymentSuccess = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [isProcessing, setIsProcessing] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [verificationAttempts, setVerificationAttempts] = useState(0);
+  const MAX_VERIFICATION_ATTEMPTS = 3;
+  const VERIFICATION_INTERVAL = 5000; // 5 seconds
 
   useEffect(() => {
     const verifyPayment = async () => {
       try {
         const orderId = searchParams.get('order_id');
         if (!orderId) {
-          throw new Error('No order ID received from payment gateway');
+          throw new Error('No order ID received');
         }
 
-        console.log('Verifying payment for order:', orderId);
-
-        const response = await axios.get<CashfreeOrderStatus>(
-          `/.netlify/functions/verify-payment`,
+        const response = await axios.get<PaymentVerificationResponse>(
+          '/.netlify/functions/verify-payment',
           {
             params: { orderId },
-            headers: {
-              'Content-Type': 'application/json',
-            },
           }
         );
 
-        console.log('Payment verification response:', response.data);
+        const { order_status, payment_details } = response.data;
 
-        // Check for specific payment status
-        if (response.data.order_status === 'PAID') {
-          setTimeout(() => {
-            navigate('/', { state: { paymentSuccess: true } });
-          }, 3000);
-        } else if (response.data.order_status === 'ACTIVE') {
-          throw new Error('Payment is still pending. Please complete the payment process.');
-        } else {
-          throw new Error(`Payment failed: ${response.data.order_status}`);
+        switch (order_status) {
+          case 'PAID':
+            // Payment successful, redirect to success page
+            setTimeout(() => {
+              navigate('/', { state: { paymentSuccess: true } });
+            }, 3000);
+            break;
+
+          case 'PENDING':
+            // Payment is still processing
+            if (verificationAttempts < MAX_VERIFICATION_ATTEMPTS) {
+              setVerificationAttempts(prev => prev + 1);
+              setTimeout(() => {
+                verifyPayment();
+              }, VERIFICATION_INTERVAL);
+            } else {
+              throw new Error('Payment verification timeout. Please contact support if payment was deducted.');
+            }
+            break;
+
+          case 'FAILED':
+            throw new Error(
+              payment_details?.[0]?.payment_message || 
+              'Payment failed. Please try again.'
+            );
+
+          default:
+            throw new Error('Unable to verify payment status');
         }
       } catch (error) {
         console.error('Payment verification error:', error);
@@ -49,17 +75,19 @@ const PaymentSuccess = () => {
             : 'Payment verification failed. Please contact support if payment was deducted.'
         );
         
-        // Redirect to cancel page for failed payments after showing error
+        // Redirect to cancel page for failed payments
         setTimeout(() => {
           navigate('/payment/cancel');
         }, 5000);
       } finally {
-        setIsProcessing(false);
+        if (verificationAttempts >= MAX_VERIFICATION_ATTEMPTS) {
+          setIsProcessing(false);
+        }
       }
     };
 
     verifyPayment();
-  }, [searchParams, navigate]);
+  }, [searchParams, navigate, verificationAttempts]);
 
   if (error) {
     return (
@@ -72,7 +100,7 @@ const PaymentSuccess = () => {
           </div>
           <h1 className="text-2xl font-bold text-gray-900 mb-4">Payment Verification Failed</h1>
           <p className="text-gray-600 mb-8">{error}</p>
-          <p className="text-sm text-gray-500 mb-4">You will be redirected to the cancellation page in a few seconds...</p>
+          <p className="text-sm text-gray-500">You will be redirected to the cancellation page in a few seconds...</p>
         </div>
       </div>
     );
@@ -87,7 +115,14 @@ const PaymentSuccess = () => {
               <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-500 mx-auto"></div>
             </div>
             <h1 className="text-2xl font-bold text-gray-900 mb-4">Verifying Payment</h1>
-            <p className="text-gray-600">Please wait while we verify your payment...</p>
+            <p className="text-gray-600">
+              Please wait while we verify your payment...
+              {verificationAttempts > 0 && (
+                <span className="block text-sm text-gray-500 mt-2">
+                  Attempt {verificationAttempts} of {MAX_VERIFICATION_ATTEMPTS}
+                </span>
+              )}
+            </p>
           </>
         ) : (
           <>

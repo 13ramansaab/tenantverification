@@ -25,12 +25,16 @@ exports.handler = async (event) => {
     }
 
     const { orderId, customerDetails } = JSON.parse(event.body);
-    console.log('Request payload:', { orderId, customerDetails });
+    
+    if (!orderId || !customerDetails) {
+      throw new Error('Invalid request data');
+    }
 
     const isProduction = process.env.NODE_ENV === 'production';
     const cashfreeApiUrl = isProduction
       ? 'https://api.cashfree.com/pg/orders'
       : 'https://sandbox.cashfree.com/pg/orders';
+    
     const cashfreeAppId = process.env.CASHFREE_APP_ID;
     const cashfreeSecretKey = process.env.CASHFREE_SECRET_KEY;
 
@@ -55,8 +59,6 @@ exports.handler = async (event) => {
       order_note: 'Tenant Registration Fee',
     };
 
-    console.log('Sending to Cashfree:', orderData);
-
     const response = await axios.post(cashfreeApiUrl, orderData, {
       headers: {
         'x-client-id': cashfreeAppId,
@@ -66,11 +68,10 @@ exports.handler = async (event) => {
       },
     });
 
-    console.log('Cashfree response:', response.data);
-
     const { payment_session_id, order_id, order_status } = response.data;
-    if (!payment_session_id || typeof payment_session_id !== 'string' || !payment_session_id.startsWith('session_')) {
-      throw new Error('Invalid payment_session_id received from Cashfree');
+
+    if (!payment_session_id || !payment_session_id.startsWith('session_')) {
+      throw new Error('Invalid payment session ID received');
     }
 
     return {
@@ -84,11 +85,13 @@ exports.handler = async (event) => {
     };
   } catch (error) {
     console.error('Order creation error:', error.response?.data || error.message);
+    
     return {
       statusCode: error.response?.status || 500,
       headers,
       body: JSON.stringify({
         error: error.response?.data?.message || error.message || 'Server error',
+        timestamp: new Date().toISOString(),
       }),
     };
   }

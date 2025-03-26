@@ -31,13 +31,6 @@ exports.handler = async (event) => {
       ? `https://api.cashfree.com/pg/orders/${orderId}`
       : `https://sandbox.cashfree.com/pg/orders/${orderId}`;
 
-    console.log('Environment check:', {
-      hasAppId: !!process.env.CASHFREE_APP_ID,
-      hasSecretKey: !!process.env.CASHFREE_SECRET_KEY,
-      nodeEnv: process.env.NODE_ENV,
-      apiUrl: cashfreeApiUrl
-    });
-
     const cashfreeAppId = process.env.CASHFREE_APP_ID;
     const cashfreeSecretKey = process.env.CASHFREE_SECRET_KEY;
 
@@ -45,69 +38,76 @@ exports.handler = async (event) => {
       throw new Error('Missing Cashfree credentials');
     }
 
-    console.log('Making request to Cashfree API...');
-    
     const response = await axios.get(cashfreeApiUrl, {
       headers: {
         'x-client-id': cashfreeAppId,
         'x-client-secret': cashfreeSecretKey,
         'x-api-version': '2023-08-01',
-        'Content-Type': 'application/json',
       },
     });
 
-    console.log('Cashfree order status response:', response.data);
+    const { data } = response;
 
-    if (!response.data || !response.data.order_status) {
+    // Validate response data
+    if (!data || !data.order_status || !data.order_id || !data.order_amount) {
       throw new Error('Invalid response from Cashfree');
     }
 
     // Validate order amount
-    if (response.data.order_amount !== 250) {
+    if (data.order_amount !== 250) {
       throw new Error('Invalid order amount');
     }
 
-    // Map Cashfree status to our status
-    let order_status;
-    switch (response.data.order_status) {
+    // Map Cashfree status to standardized status
+    let status;
+    switch (data.order_status.toUpperCase()) {
       case 'PAID':
-        order_status = 'PAID';
+        status = 'PAID';
         break;
       case 'ACTIVE':
-        order_status = 'ACTIVE';
+        status = 'PENDING';
         break;
       case 'EXPIRED':
       case 'CANCELLED':
       case 'FAILED':
-        order_status = 'FAILED';
+        status = 'FAILED';
         break;
       default:
-        order_status = 'FAILED';
+        status = 'UNKNOWN';
+    }
+
+    // Check payment details for additional verification
+    if (status === 'PAID') {
+      if (!data.payments || !data.payments.length) {
+        status = 'FAILED';
+      } else {
+        const payment = data.payments[0];
+        if (payment.payment_status !== 'SUCCESS') {
+          status = 'FAILED';
+        }
+      }
     }
 
     return {
       statusCode: 200,
       headers,
       body: JSON.stringify({
-        order_status,
-        order_id: response.data.order_id,
-        payment_status: response.data.payment_status,
-        order_amount: response.data.order_amount,
+        order_status: status,
+        order_id: data.order_id,
+        order_amount: data.order_amount,
+        payment_details: data.payments || [],
       }),
     };
   } catch (error) {
     console.error('Payment verification error:', error.response?.data || error.message);
     
-    const errorResponse = {
-      error: error.response?.data?.message || error.message || 'Server error',
-      details: error.response?.data || null,
-      timestamp: new Date().toISOString(),
-    };
-
     return {
       statusCode: error.response?.status || 500,
       headers,
-      body: JSON.stringify(errorResponse),
+      body: JSON.stringify({
+        error: error.response?.data?.message || error.message || 'Server error',
+        timestamp: new Date().toISOString(),
+      }),
     };
   }
 };
