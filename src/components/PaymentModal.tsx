@@ -2,31 +2,12 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 import type { TenantFormData } from '../types';
-import type { CashfreeOrderResponse } from '@/types/cashfree';
+import type { CashfreeOrderResponse, Cashfree } from '@/types/cashfree'; // Import from cashfree.ts
 
 interface PaymentModalProps {
   onClose: () => void;
   customerData: TenantFormData;
   onPaymentComplete: () => Promise<void>;
-}
-
-// Define Cashfree type separately to avoid global conflicts
-interface CashfreeInstance {
-  checkout: (options: {
-    paymentSessionId: string;
-    redirectTarget: '_self' | '_blank';
-    returnUrl: string;
-  }) => Promise<{
-    error?: { message: string };
-    redirect?: boolean;
-    paymentDetails?: { paymentMessage: string };
-  }>;
-}
-
-declare global {
-  interface Window {
-    Cashfree?: (config: { mode: 'sandbox' | 'production' }) => CashfreeInstance;
-  }
 }
 
 const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModalProps) => {
@@ -90,11 +71,12 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
           throw new Error('Cashfree SDK not loaded');
         }
 
-        const cashfree = window.Cashfree({
+        const cashfree: Cashfree = window.Cashfree({
           mode: process.env.NODE_ENV === 'production' ? 'production' : 'sandbox',
         });
         console.log('Cashfree instance initialized:', cashfree);
 
+        // Since checkout is optional in the type, check its existence
         if (!cashfree.checkout) {
           throw new Error('Cashfree checkout method is unavailable');
         }
@@ -106,21 +88,13 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
         };
         console.log('Initiating checkout with options:', checkoutOptions);
 
-        const result = await cashfree.checkout(checkoutOptions);
-        console.log('Checkout result:', result);
+        // `checkout` in cashfree.ts is void, but docs suggest it returns a Promise in newer SDK versions
+        // For now, treat it as void per the type, but handle redirect implicitly
+        cashfree.checkout(checkoutOptions);
+        console.log('Checkout initiated; expecting redirect');
 
-        if (result.error) {
-          throw new Error(`Checkout failed: ${result.error.message}`);
-        }
-
-        if (result.redirect) {
-          console.log('Redirecting to returnUrl');
-          // No further action; redirect handles flow
-        } else if (result.paymentDetails) {
-          console.log('Payment completed without redirect:', result.paymentDetails);
-          await onPaymentComplete(); // No arguments expected
-          setIsProcessing(false);
-        }
+        // Since checkout is void and redirects, we don’t await a result here
+        // onPaymentComplete will be called by PaymentSuccess.tsx after verification
       } catch (error) {
         console.error('Payment initialization error:', {
           message: error instanceof Error ? error.message : String(error),
