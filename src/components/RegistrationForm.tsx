@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { TenantFormData } from '../types';
 import { fetchPGOwnerByMobile, saveTenantData, fetchStates, fetchDistricts, fetchPoliceStations, uploadImage } from '../api';
-import { saveFormData, loadFormData, clearFormData } from '../utils/formPersistence';
+import { saveFormData, loadFormData, clearFormData, handleFilePreview } from '../utils/formPersistence';
 import PaymentModal from './PaymentModal';
 import Footer from './Footer';
 
@@ -62,6 +62,18 @@ function RegistrationForm({ onPaymentComplete }: RegistrationFormProps) {
     const savedData = loadFormData();
     if (savedData) {
       setFormData(savedData);
+      
+      // Load districts and police stations if state/district are saved
+      if (savedData.permanentAddress.state) {
+        fetchDistricts(savedData.permanentAddress.state).then(setDistricts);
+        
+        if (savedData.permanentAddress.district) {
+          fetchPoliceStations(
+            savedData.permanentAddress.state,
+            savedData.permanentAddress.district
+          ).then(setPoliceStations);
+        }
+      }
     }
   }, []);
 
@@ -143,7 +155,7 @@ function RegistrationForm({ onPaymentComplete }: RegistrationFormProps) {
     fetchOwnerDetails();
   }, [formData.presentAddress.ownerMobileNo]);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, field: 'photo' | 'addressProof') => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, field: 'photo' | 'addressProof') => {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 1024 * 1024) {
@@ -162,14 +174,19 @@ function RegistrationForm({ onPaymentComplete }: RegistrationFormProps) {
         setAddressProofFile(file);
       }
       
-      const objectUrl = URL.createObjectURL(file);
-      setFormData(prev => ({
-        ...prev,
-        documents: {
-          ...prev.documents,
-          [field]: objectUrl
-        }
-      }));
+      try {
+        const preview = await handleFilePreview(file);
+        setFormData(prev => ({
+          ...prev,
+          documents: {
+            ...prev.documents,
+            [field]: preview
+          }
+        }));
+      } catch (error) {
+        console.error('Error generating file preview:', error);
+        alert('Failed to preview file');
+      }
     }
   };
 

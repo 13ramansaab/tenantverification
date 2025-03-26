@@ -62,11 +62,37 @@ exports.handler = async (event) => {
       throw new Error('Invalid response from Cashfree');
     }
 
+    // Validate order amount
+    if (response.data.order_amount !== 250) {
+      throw new Error('Invalid order amount');
+    }
+
+    // Map Cashfree status to our status
+    let order_status;
+    switch (response.data.order_status) {
+      case 'PAID':
+        order_status = 'PAID';
+        break;
+      case 'ACTIVE':
+        order_status = 'ACTIVE';
+        break;
+      case 'EXPIRED':
+      case 'CANCELLED':
+      case 'FAILED':
+        order_status = 'FAILED';
+        break;
+      default:
+        order_status = 'FAILED';
+    }
+
     return {
       statusCode: 200,
       headers,
       body: JSON.stringify({
-        order_status: response.data.order_status,
+        order_status,
+        order_id: response.data.order_id,
+        payment_status: response.data.payment_status,
+        order_amount: response.data.order_amount,
       }),
     };
   } catch (error) {

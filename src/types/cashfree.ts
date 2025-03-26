@@ -5,10 +5,12 @@ export interface CashfreeOrderResponse {
 }
 
 export interface CashfreeOrderStatus {
-  order_status: string; // e.g., "PAID", "PENDING", "FAILED"
+  order_status: 'PAID' | 'ACTIVE' | 'EXPIRED' | 'CANCELLED' | 'FAILED';
+  order_id: string;
+  payment_status?: string;
+  order_amount: number;
 }
 
-// Existing Cashfree interface (unchanged)
 interface PayOptions {
   paymentMethod: any;
   paymentSessionId: string;

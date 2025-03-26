@@ -1,107 +1,87 @@
-import { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import axios from 'axios';
-import type { CashfreeOrderStatus } from '../types/cashfree';
+const axios = require('axios');
 
-const PaymentSuccess = () => {
-  const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
-  const [isProcessing, setIsProcessing] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+exports.handler = async (event) => {
+  const headers = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Methods': 'GET, OPTIONS',
+    'Content-Type': 'application/json',
+  };
 
-  useEffect(() => {
-    const verifyPayment = async () => {
-      try {
-        const orderId = searchParams.get('order_id');
-        if (!orderId) {
-          throw new Error('No order ID received from payment gateway');
-        }
-
-        console.log('Verifying payment for order:', orderId);
-
-        const response = await axios.get<CashfreeOrderStatus>(
-          `/.netlify/functions/verify-payment`,
-          {
-            params: { orderId },
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          }
-        );
-
-        console.log('Payment verification response:', response.data);
-
-        if (response.data.order_status === 'PAID') {
-          setTimeout(() => {
-            navigate('/', { state: { paymentSuccess: true } });
-          }, 3000);
-        } else {
-          throw new Error(`Payment verification failed: ${response.data.order_status}`);
-        }
-      } catch (error) {
-        console.error('Payment verification error:', error);
-        setError(
-          error instanceof Error 
-            ? error.message 
-            : 'Payment verification failed. Please contact support if payment was deducted.'
-        );
-      } finally {
-        setIsProcessing(false);
-      }
-    };
-
-    verifyPayment();
-  }, [searchParams, navigate]);
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center p-6">
-        <div className="max-w-md w-full bg-white rounded-lg shadow p-8 text-center">
-          <div className="mb-6 text-red-500">
-            <svg className="mx-auto h-16 w-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Payment Verification Failed</h1>
-          <p className="text-gray-600 mb-8">{error}</p>
-          <button
-            onClick={() => navigate('/')}
-            className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg transition-colors"
-          >
-            Return to Registration
-          </button>
-        </div>
-      </div>
-    );
+  if (event.httpMethod === 'OPTIONS') {
+    return { statusCode: 204, headers };
   }
 
-  return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-6">
-      <div className="max-w-md w-full bg-white rounded-lg shadow p-8 text-center">
-        {isProcessing ? (
-          <>
-            <div className="mb-6">
-              <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-500 mx-auto"></div>
-            </div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-4">Verifying Payment</h1>
-            <p className="text-gray-600">Please wait while we verify your payment...</p>
-          </>
-        ) : (
-          <>
-            <div className="mb-6">
-              <svg className="mx-auto h-16 w-16 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-4">Payment Successful!</h1>
-            <p className="text-gray-600 mb-8">
-              Your payment has been processed successfully. You will be redirected back to the registration page.
-            </p>
-          </>
-        )}
-      </div>
-    </div>
-  );
-};
+  if (event.httpMethod !== 'GET') {
+    return {
+      statusCode: 405,
+      headers,
+      body: JSON.stringify({ error: 'Method not allowed' }),
+    };
+  }
 
-export default PaymentSuccess;
+  try {
+    const orderId = event.queryStringParameters?.orderId;
+    if (!orderId) {
+      throw new Error('Order ID is required');
+    }
+
+    const isProduction = process.env.NODE_ENV === 'production';
+    const cashfreeApiUrl = isProduction
+      ? `https://api.cashfree.com/pg/orders/${orderId}`
+      : `https://sandbox.cashfree.com/pg/orders/${orderId}`;
+
+    console.log('Environment check:', {
+      hasAppId: !!process.env.CASHFREE_APP_ID,
+      hasSecretKey: !!process.env.CASHFREE_SECRET_KEY,
+      nodeEnv: process.env.NODE_ENV,
+      apiUrl: cashfreeApiUrl
+    });
+
+    const cashfreeAppId = process.env.CASHFREE_APP_ID;
+    const cashfreeSecretKey = process.env.CASHFREE_SECRET_KEY;
+
+    if (!cashfreeAppId || !cashfreeSecretKey) {
+      throw new Error('Missing Cashfree credentials');
+    }
+
+    console.log('Making request to Cashfree API...');
+    
+    const response = await axios.get(cashfreeApiUrl, {
+      headers: {
+        'x-client-id': cashfreeAppId,
+        'x-client-secret': cashfreeSecretKey,
+        'x-api-version': '2023-08-01',
+        'Content-Type': 'application/json',
+      },
+    });
+
+    console.log('Cashfree order status response:', response.data);
+
+    if (!response.data || !response.data.order_status) {
+      throw new Error('Invalid response from Cashfree');
+    }
+
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify({
+        order_status: response.data.order_status,
+      }),
+    };
+  } catch (error) {
+    console.error('Payment verification error:', error.response?.data || error.message);
+    
+    const errorResponse = {
+      error: error.response?.data?.message || error.message || 'Server error',
+      details: error.response?.data || null,
+      timestamp: new Date().toISOString(),
+    };
+
+    return {
+      statusCode: error.response?.status || 500,
+      headers,
+      body: JSON.stringify(errorResponse),
+    };
+  }
+};
