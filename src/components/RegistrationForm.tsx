@@ -3,8 +3,11 @@ import { TenantFormData } from '../types';
 import { fetchPGOwnerByMobile, saveTenantData, fetchStates, fetchDistricts, fetchPoliceStations, uploadImage } from '../api';
 import { saveFormData, loadFormData, clearFormData } from '../utils/formPersistence';
 import PaymentModal from './PaymentModal';
-import SuccessPage from './SuccessPage';
 import Footer from './Footer';
+
+interface RegistrationFormProps {
+  onPaymentComplete: () => void;
+}
 
 const defaultFormData: TenantFormData = {
   firstName: '',
@@ -43,7 +46,7 @@ const defaultFormData: TenantFormData = {
   }
 };
 
-function RegistrationForm() {
+function RegistrationForm({ onPaymentComplete }: RegistrationFormProps) {
   const [formData, setFormData] = useState<TenantFormData>(defaultFormData);
   const [states, setStates] = useState<string[]>([]);
   const [districts, setDistricts] = useState<string[]>([]);
@@ -52,7 +55,6 @@ function RegistrationForm() {
   const [addressProofFile, setAddressProofFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -175,7 +177,6 @@ function RegistrationForm() {
     setFormData(defaultFormData);
     setPhotoFile(null);
     setAddressProofFile(null);
-    setShowSuccess(false);
     setTermsAccepted(false);
     setSubmitError(null);
     clearFormData();
@@ -233,7 +234,7 @@ function RegistrationForm() {
 
       await saveTenantData(formData.presentAddress.ownerMobileNo, updatedFormData);
       setShowPayment(false);
-      setShowSuccess(true);
+      onPaymentComplete();
     } catch (error) {
       console.error('Error saving tenant data:', error);
       setSubmitError('Error saving tenant data. Please try again.');
@@ -241,10 +242,6 @@ function RegistrationForm() {
       setIsSubmitting(false);
     }
   };
-
-  if (showSuccess) {
-    return <SuccessPage onBack={resetForm} />;
-  }
 
   return (
     <>
