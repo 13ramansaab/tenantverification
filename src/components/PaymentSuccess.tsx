@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { CashfreeOrderStatus } from '@/types/cashfree';
+import { AxiosError } from 'axios'; // Import AxiosError for specific typing
 
 const PaymentSuccess = () => {
   const [searchParams] = useSearchParams();
@@ -26,24 +27,28 @@ const PaymentSuccess = () => {
 
         if (response.data.order_status === 'PAID') {
           setIsPaid(true);
-          // Optional: Redirect after a delay, or let user click to proceed
           setTimeout(() => {
             navigate('/', { state: { paymentSuccess: true } });
-          }, 5000); // 5 seconds to view success
+          }, 5000); // 5-second delay
         } else {
           throw new Error(`Payment status: ${response.data.order_status}`);
         }
-      } catch (error) {
+      } catch (error: unknown) { // Explicitly type as unknown
+        // Handle as Error or AxiosError
+        const isAxiosError = (err: any): err is AxiosError => err.isAxiosError || (err.response && err.request);
+        const err = error as Error | AxiosError;
+
         console.error('Verification error:', {
-          message: error instanceof Error ? error.message : 'Unknown error',
-          axiosError: error.response ? {
-            status: error.response.status,
-            data: error.response.data,
+          message: err instanceof Error ? err.message : 'Unknown error',
+          stack: err instanceof Error ? err.stack : undefined,
+          axiosError: isAxiosError(err) ? {
+            status: err.response?.status,
+            data: err.response?.data,
           } : null,
         });
         setError(
-          error instanceof Error
-            ? error.message
+          err instanceof Error
+            ? err.message
             : 'Payment verification failed. Please try again or contact support.'
         );
       } finally {
