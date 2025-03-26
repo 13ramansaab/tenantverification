@@ -51,13 +51,14 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
         };
         console.log('Sending to create-order:', payload);
 
-        const response = await axios.post<CashfreeOrderResponse>('/.netlify/functions/create-order', payload);
+        const response = await axios.post<CashfreeOrderResponse>('/.netlify/functions/create-orders', payload);
         console.log('Received from create-order:', response.data);
         const { payment_session_id } = response.data;
 
-        if (!payment_session_id) {
-          throw new Error('Failed to retrieve payment session ID');
+        if (!payment_session_id || typeof payment_session_id !== 'string' || !payment_session_id.startsWith('session_')) {
+          throw new Error('Invalid payment_session_id received from server');
         }
+        console.log('Valid payment_session_id:', payment_session_id);
 
         await loadCashfreeSDK();
 
@@ -65,7 +66,9 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
           throw new Error('Cashfree SDK not loaded');
         }
 
-        const cashfree = window.Cashfree({ mode: 'production' }); // Use 'sandbox' for testing
+        const cashfree = window.Cashfree({
+          mode: process.env.NODE_ENV === 'production' ? 'production' : 'sandbox',
+        });
         console.log('Cashfree instance:', cashfree);
         console.log('Instance own properties:', Object.keys(cashfree));
         console.log('Instance version:', cashfree.version);
@@ -74,42 +77,13 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
           console.log('Using checkout method');
           cashfree.checkout({
             paymentSessionId: payment_session_id,
-            redirectTarget: '_modal', // Opens in a popup, keeps modal context
+            redirectTarget: '_modal',
             returnUrl: `${window.location.origin}/payment/success?order_id=${orderId}`,
           });
-          setIsProcessing(false); // Clear spinner before redirect
-        } else if (typeof cashfree.pay === 'function' && typeof cashfree.create === 'function') {
-          console.log('Using pay method with component');
-          const container = document.getElementById('payment-form');
-          if (!container) {
-            throw new Error('Payment container not found');
-          }
-
-          const paymentComponent = cashfree.create('card', {
-            values: {},
-            style: { base: { fontSize: '16px' } },
-          });
-          paymentComponent.mount(container);
-
-          const payResult = await cashfree.pay({
-            paymentMethod: paymentComponent,
-            paymentSessionId: payment_session_id,
-            returnUrl: `${window.location.origin}/payment/success?order_id=${orderId}`,
-            redirect: 'if_required',
-          });
-          console.log('Pay result:', payResult);
-
-          if (payResult.error) {
-            throw new Error(`Payment failed: ${payResult.error.message || JSON.stringify(payResult.error)}`);
-          }
-          if (payResult.paymentDetails) {
-            console.log('Payment success:', payResult.paymentDetails);
-            await onPaymentComplete();
-          }
           setIsProcessing(false);
         } else {
-          console.error('No suitable Cashfree payment methods available');
-          throw new Error('Cashfree SDK lacks checkout or pay/create methods');
+          console.error('Checkout method not available');
+          throw new Error('Cashfree SDK lacks checkout method');
         }
 
       } catch (error) {
