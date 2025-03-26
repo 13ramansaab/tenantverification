@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'; // Ensure this line is present
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import RegistrationForm from './components/RegistrationForm';
 import PaymentSuccess from './components/PaymentSuccess';
 
@@ -17,7 +17,6 @@ function App() {
       <Routes>
         <Route path="/" element={<RegistrationForm onPaymentComplete={handlePaymentComplete} />} />
         <Route path="/payment/success" element={<PaymentSuccess />} />
-        {/* Optional: Catch-all route for 404 */}
         <Route path="*" element={<div>404 - Page Not Found</div>} />
       </Routes>
     </BrowserRouter>
