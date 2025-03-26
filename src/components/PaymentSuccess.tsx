@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { CashfreeOrderStatus } from '@/types/cashfree';
-import { AxiosError } from 'axios';
 
 const PaymentSuccess = () => {
   const [isProcessing, setIsProcessing] = useState(true);
@@ -19,14 +18,9 @@ const PaymentSuccess = () => {
 
         console.log('Verifying payment for orderId:', orderId);
         const response = await axios.get<CashfreeOrderStatus>(
-          `/.netlify/functions/verify-payments?orderId=${orderId}`,
-          { headers: { Accept: 'application/json' } }
+          `/.netlify/functions/verify-payments?orderId=${orderId}`
         );
         console.log('Verification response:', response.data);
-
-        if (!response.data || typeof response.data.order_status !== 'string') {
-          throw new Error('Invalid verification response from server');
-        }
 
         if (response.data.order_status === 'PAID') {
           setIsPaid(true);
@@ -34,23 +28,13 @@ const PaymentSuccess = () => {
             window.location.href = '/';
           }, 5000);
         } else {
-          throw new Error(`Payment status: ${response.data.order_status || 'unknown'}`);
+          throw new Error(`Payment status: ${response.data.order_status}`);
         }
-      } catch (error: unknown) {
-        const isAxiosError = (err: any): err is AxiosError => err.isAxiosError || (err.response && err.request);
-        const err = error as Error | AxiosError;
-
-        console.error('Verification error:', {
-          message: err instanceof Error ? err.message : 'Unknown error',
-          stack: err instanceof Error ? err.stack : undefined,
-          axiosError: isAxiosError(err) ? {
-            status: err.response?.status,
-            data: err.response?.data,
-          } : null,
-        });
+      } catch (error) {
+        console.error('Verification error:', error);
         setError(
-          err instanceof Error
-            ? err.message
+          error instanceof Error
+            ? error.message
             : 'Payment verification failed. Please try again or contact support.'
         );
       } finally {
