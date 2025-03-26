@@ -62,7 +62,7 @@ const handler: Handler = async (event) => {
       headers: {
         'x-client-id': cashfreeAppId,
         'x-client-secret': cashfreeSecretKey,
-        'x-api-version': '2023-08-01', // Updated to latest version
+        'x-api-version': '2023-08-01',
         'Content-Type': 'application/json',
       },
     });

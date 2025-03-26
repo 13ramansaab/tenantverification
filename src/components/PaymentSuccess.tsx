@@ -1,4 +1,3 @@
-// src/components/PaymentSuccess.tsx
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
@@ -18,26 +17,19 @@ const PaymentSuccess = () => {
           throw new Error('No order ID received from payment gateway');
         }
 
-        console.log('Verifying order:', orderId);
         const response = await axios.get<CashfreeOrderStatus>(
-          `/.netlify/functions/verify-payments?orderId=${orderId}`
+          `/.netlify/functions/verify-payment?orderId=${orderId}`
         );
-        console.log('Verification response:', response.data);
 
         if (response.data.order_status === 'PAID') {
           setTimeout(() => {
             navigate('/', { state: { paymentSuccess: true } });
           }, 3000);
         } else {
-          throw new Error(`Payment status: ${response.data.order_status}`);
+          throw new Error(`Payment failed: ${response.data.order_status}`);
         }
       } catch (error) {
-        console.error('Verification error:', error);
-        setError(
-          error instanceof Error
-            ? error.message
-            : 'Payment verification failed. Please try again or contact support.'
-        );
+        setError(error instanceof Error ? error.message : 'Payment verification failed');
       } finally {
         setIsProcessing(false);
       }
@@ -88,7 +80,7 @@ const PaymentSuccess = () => {
             </div>
             <h1 className="text-2xl font-bold text-gray-900 mb-4">Payment Successful!</h1>
             <p className="text-gray-600 mb-8">
-              Your payment has been processed successfully. Redirecting to registration page...
+              Your payment has been processed successfully. You will be redirected back to the registration page.
             </p>
           </>
         )}

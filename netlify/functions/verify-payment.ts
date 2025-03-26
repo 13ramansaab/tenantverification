@@ -1,4 +1,3 @@
-// functions/verify-payments.ts
 import { Handler } from '@netlify/functions';
 import axios from 'axios';
 
@@ -42,7 +41,7 @@ const handler: Handler = async (event) => {
       headers: {
         'x-client-id': cashfreeAppId,
         'x-client-secret': cashfreeSecretKey,
-        'x-api-version': '2023-08-01', // Updated to latest version
+        'x-api-version': '2023-08-01',
       },
     });
 
@@ -51,9 +50,7 @@ const handler: Handler = async (event) => {
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({
-        order_status: response.data.order_status, // Matches CashfreeOrderStatus
-      }),
+      body: JSON.stringify(response.data),
     };
   } catch (error) {
     console.error('Payment verification error:', error.response?.data || error.message);
