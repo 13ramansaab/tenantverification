@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 import type { TenantFormData } from '@/types';
@@ -13,12 +13,12 @@ interface PaymentModalProps {
 const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModalProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const paymentContainerRef = useRef<HTMLDivElement>(null);
 
   const loadCashfreeSDK = () => {
     return new Promise((resolve, reject) => {
       if (window.Cashfree) {
         console.log('Cashfree SDK already loaded:', window.Cashfree);
-        console.log('Cashfree own properties:', Object.keys(window.Cashfree));
         resolve(true);
       } else {
         const script = document.createElement('script');
@@ -26,9 +26,6 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
         script.async = true;
         script.onload = () => {
           console.log('Cashfree SDK loaded:', window.Cashfree);
-          console.log('Cashfree own properties after load:', Object.keys(window.Cashfree));
-          console.log('Cashfree prototype after load:', Object.getPrototypeOf(window.Cashfree));
-          console.log('Cashfree version (if available):', (window.Cashfree as any).version);
           resolve(true);
         };
         script.onerror = () => reject(new Error('Failed to load Cashfree SDK'));
@@ -69,35 +66,60 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
           throw new Error('Cashfree SDK not loaded');
         }
 
-        const cashfree = new window.Cashfree();
+        // Initialize Cashfree with mode (adjust 'production' or 'sandbox' as needed)
+        const cashfree = window.Cashfree({ mode: 'production' }); // Use 'sandbox' for testing
         console.log('Cashfree instance:', cashfree);
         console.log('Instance own properties:', Object.keys(cashfree));
         console.log('Instance version:', cashfree.version);
 
+        const container = paymentContainerRef.current;
+        if (!container) {
+          throw new Error('Payment container not found');
+        }
+
+        // Create a payment component (e.g., card payment)
+        const paymentComponent = cashfree.create('card', {
+          values: {}, // Add card-specific options if needed
+          style: {
+            base: { fontSize: '16px' },
+          },
+        });
+        console.log('Payment component created:', paymentComponent);
+
+        // Mount the component to the container
+        paymentComponent.mount(container);
+        console.log('Payment component mounted to container');
+
         if (typeof cashfree.pay === 'function') {
           console.log('Using pay method');
-          cashfree.pay({
+          const payResult = await cashfree.pay({
+            paymentMethod: paymentComponent,
             paymentSessionId: payment_session_id,
-            components: ['order-details', 'card', 'upi', 'paylater'],
-            container: document.getElementById('payment-form'),
-            onSuccess: async (data: any) => {
-              console.log('Payment success:', data);
-              await onPaymentComplete();
-              setIsProcessing(false);
-            },
-            onFailure: (error: any) => {
-              console.error('Payment failure:', error);
-              throw new Error(`Payment failed: ${error.message}`);
-            },
+            returnUrl: `${window.location.origin}/payment/success?order_id=${orderId}`,
+            redirect: 'if_required', // Redirect only if necessary
           });
+          console.log('Pay result:', payResult);
+
+          if (payResult.error) {
+            throw new Error(`Payment failed: ${payResult.error.message || JSON.stringify(payResult.error)}`);
+          }
+          if (payResult.paymentDetails) {
+            console.log('Payment success:', payResult.paymentDetails);
+            await onPaymentComplete();
+          }
+          if (payResult.redirect) {
+            console.log('Payment redirected');
+            // Handle redirect if needed
+          }
+          setIsProcessing(false);
         } else if (typeof cashfree.checkout === 'function') {
           console.log('Using checkout method');
           cashfree.checkout({
             paymentSessionId: payment_session_id,
-            redirectTarget: '_self',
+            redirectTarget: '_modal',
             returnUrl: `${window.location.origin}/payment/success?order_id=${orderId}`,
           });
-          setIsProcessing(false); // Clear spinner before redirect
+          setIsProcessing(false);
         } else {
           console.error('No suitable Cashfree payment methods available');
           throw new Error('Cashfree SDK lacks pay or checkout methods');
@@ -131,7 +153,7 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
             {error}
           </div>
         )}
-        <div id="payment-form" className="mb-4">
+        <div ref={paymentContainerRef} id="payment-form" className="mb-4 min-h-[300px]">
           {isProcessing && !error && (
             <div className="text-center py-4">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>

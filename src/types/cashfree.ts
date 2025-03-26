@@ -18,11 +18,10 @@ export interface CashfreeOrderStatus {
 }
 // types/cashfree.d.ts
 interface PayOptions {
+  paymentMethod: any; // The component created by cashfree.create
   paymentSessionId: string;
-  components?: string[];
-  container?: HTMLElement | null;
-  onSuccess?: (data: any) => void;
-  onFailure?: (error: any) => void;
+  returnUrl?: string;
+  redirect?: 'if_required' | 'always' | 'never';
 }
 
 interface CheckoutOptions {
@@ -31,22 +30,32 @@ interface CheckoutOptions {
   returnUrl?: string;
 }
 
+interface ComponentOptions {
+  values?: Record<string, any>;
+  style?: {
+    base?: Record<string, string>;
+  };
+}
+
+interface PaymentComponent {
+  mount: (container: HTMLElement | string) => void;
+  on: (event: string, callback: (data: any) => void) => void;
+}
+
 interface Cashfree {
-  pay?: (options: PayOptions) => void;
+  pay?: (options: PayOptions) => Promise<{
+    error?: { message: string };
+    paymentDetails?: { paymentMessage: string };
+    redirect?: boolean;
+  }>;
   checkout?: (options: CheckoutOptions) => void;
-  version?: string; // Added from runtime logs
-  create?: (options: any) => any; // Optional, from logs
-  flowWisePay?: (options: any) => any; // Optional, from logs
-  returnElement?: (options: any) => any; // Optional, from logs
-  destroyElement?: (options: any) => any; // Optional, from logs
-  getComponents?: () => any; // Optional, from logs
-  updateRootOptions?: (options: any) => any; // Optional, from logs
-  getRootOptions?: () => any; // Optional, from logs
-  subscriptionsCheckout?: (options: any) => any; // Optional, from logs
+  create?: (type: string, options: ComponentOptions) => PaymentComponent;
+  version?: string;
 }
 
 interface CashfreeConstructor {
-  new (): Cashfree;
+  (config: { mode: 'sandbox' | 'production' }): Cashfree;
+  new (): Cashfree; // For backward compatibility
 }
 
 declare global {
