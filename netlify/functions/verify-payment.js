@@ -2,7 +2,7 @@
 const axios = require('axios');
 
 exports.handler = async (event) => {
-  console.log('Function invoked:', event);
+  console.log('Verify-payments invoked:', event);
 
   const headers = {
     'Access-Control-Allow-Origin': '*',
