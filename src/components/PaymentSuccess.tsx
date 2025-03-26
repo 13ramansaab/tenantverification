@@ -1,12 +1,8 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { CashfreeOrderStatus } from '@/types/cashfree';
-import { AxiosError } from 'axios'; // Import AxiosError for specific typing
 
 const PaymentSuccess = () => {
-  const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
   const [isProcessing, setIsProcessing] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isPaid, setIsPaid] = useState(false);
@@ -14,7 +10,8 @@ const PaymentSuccess = () => {
   useEffect(() => {
     const verifyPayment = async () => {
       try {
-        const orderId = searchParams.get('order_id');
+        const urlParams = new URLSearchParams(window.location.search);
+        const orderId = urlParams.get('order_id');
         if (!orderId) {
           throw new Error('No order ID received from payment gateway');
         }
@@ -28,27 +25,16 @@ const PaymentSuccess = () => {
         if (response.data.order_status === 'PAID') {
           setIsPaid(true);
           setTimeout(() => {
-            navigate('/', { state: { paymentSuccess: true } });
-          }, 5000); // 5-second delay
+            window.location.href = '/';
+          }, 5000);
         } else {
           throw new Error(`Payment status: ${response.data.order_status}`);
         }
-      } catch (error: unknown) { // Explicitly type as unknown
-        // Handle as Error or AxiosError
-        const isAxiosError = (err: any): err is AxiosError => err.isAxiosError || (err.response && err.request);
-        const err = error as Error | AxiosError;
-
-        console.error('Verification error:', {
-          message: err instanceof Error ? err.message : 'Unknown error',
-          stack: err instanceof Error ? err.stack : undefined,
-          axiosError: isAxiosError(err) ? {
-            status: err.response?.status,
-            data: err.response?.data,
-          } : null,
-        });
+      } catch (error) {
+        console.error('Verification error:', error);
         setError(
-          err instanceof Error
-            ? err.message
+          error instanceof Error
+            ? error.message
             : 'Payment verification failed. Please try again or contact support.'
         );
       } finally {
@@ -57,7 +43,7 @@ const PaymentSuccess = () => {
     };
 
     verifyPayment();
-  }, [searchParams, navigate]);
+  }, []);
 
   if (error) {
     return (
@@ -71,7 +57,7 @@ const PaymentSuccess = () => {
           <h1 className="text-2xl font-bold text-gray-900 mb-4">Payment Verification Failed</h1>
           <p className="text-gray-600 mb-8">{error}</p>
           <button
-            onClick={() => navigate('/')}
+            onClick={() => (window.location.href = '/')}
             className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg transition-colors"
           >
             Return to Registration
@@ -104,7 +90,7 @@ const PaymentSuccess = () => {
               Your payment has been processed successfully. You will be redirected to the homepage shortly.
             </p>
             <button
-              onClick={() => navigate('/')}
+              onClick={() => (window.location.href = '/')}
               className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg transition-colors"
             >
               Return to Homepage Now

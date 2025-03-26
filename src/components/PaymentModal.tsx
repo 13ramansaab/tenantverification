@@ -3,7 +3,7 @@ import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 import type { TenantFormData } from '../types';
 import type { CashfreeOrderResponse, Cashfree } from '@/types/cashfree';
-import { AxiosError } from 'axios'; // Import AxiosError for specific typing
+import { AxiosError } from 'axios';
 
 interface PaymentModalProps {
   onClose: () => void;
@@ -58,11 +58,7 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
         const response = await axios.post<CashfreeOrderResponse>(
           '/.netlify/functions/create-orders',
           payload,
-          {
-            headers: {
-              'Content-Type': 'application/json',
-            }
-          }
+          { headers: { 'Content-Type': 'application/json' } }
         );
         console.log('Order creation response:', response.data);
 
@@ -95,8 +91,7 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
 
         cashfree.checkout(checkoutOptions);
         console.log('Checkout initiated; expecting redirect');
-      } catch (error: unknown) { // Explicitly type as unknown
-        // Handle as Error or AxiosError
+      } catch (error: unknown) {
         const isAxiosError = (err: any): err is AxiosError => err.isAxiosError || (err.response && err.request);
         const err = error as Error | AxiosError;
 

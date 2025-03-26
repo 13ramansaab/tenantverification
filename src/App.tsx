@@ -1,3 +1,5 @@
+import { useState } from 'react';
+import { Routes, Route } from 'react-router-dom';
 import RegistrationForm from './components/RegistrationForm';
 import ContactUs from './components/ContactUs';
 import TermsAndConditions from './components/TermsAndConditions';
