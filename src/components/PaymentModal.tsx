@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 import type { TenantFormData } from '../types';
-import type { CashfreeOrderResponse } from '../types/cashfree';
+import type { CashfreeOrderResponse } from '@/types/cashfree';
 
 interface PaymentModalProps {
   onClose: () => void;
@@ -10,22 +10,40 @@ interface PaymentModalProps {
   onPaymentComplete: () => Promise<void>;
 }
 
+declare global {
+  interface Window {
+    Cashfree: {
+      new(config: { mode: 'sandbox' | 'production' }): {
+        checkout: (options: {
+          paymentSessionId: string;
+          redirectTarget: '_self' | '_blank';
+          returnUrl: string;
+        }) => Promise<void>;
+      };
+    };
+  }
+}
+
 const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModalProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const loadCashfreeSDK = async (): Promise<void> => {
-    if (typeof window.Cashfree !== 'undefined') {
-      return;
-    }
-
-    return new Promise((resolve, reject) => {
-      const script = document.createElement('script');
-      script.src = 'https://sdk.cashfree.com/js/v3/cashfree.js';
-      script.async = true;
-      script.onload = () => resolve();
-      script.onerror = () => reject(new Error('Failed to load Cashfree SDK'));
-      document.head.appendChild(script);
+  const loadCashfreeSDK = () => {
+    return new Promise<void>((resolve, reject) => {
+      if (typeof window.Cashfree !== 'undefined') {
+        console.log('Cashfree SDK already loaded');
+        resolve();
+      } else {
+        const script = document.createElement('script');
+        script.src = 'https://sdk.cashfree.com/js/v3/cashfree.js';
+        script.async = true;
+        script.onload = () => {
+          console.log('Cashfree SDK loaded');
+          resolve();
+        };
+        script.onerror = () => reject(new Error('Failed to load Cashfree SDK'));
+        document.head.appendChild(script);
+      }
     });
   };
 
@@ -54,6 +72,10 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
         }
 
         await loadCashfreeSDK();
+
+        if (typeof window.Cashfree === 'undefined') {
+          throw new Error('Cashfree SDK not loaded');
+        }
 
         const cashfree = new window.Cashfree({
           mode: process.env.NODE_ENV === 'production' ? 'production' : 'sandbox'

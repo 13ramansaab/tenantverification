@@ -11,16 +11,43 @@ export interface CashfreeOrderStatus {
   order_amount: number;
 }
 
-export interface CashfreeInstance {
-  checkout: (options: {
-    paymentSessionId: string;
-    redirectTarget: '_self' | '_blank';
-    returnUrl: string;
-  }) => Promise<void>;
+interface PayOptions {
+  paymentMethod: any;
+  paymentSessionId: string;
+  returnUrl?: string;
+  redirect?: 'if_required' | 'always' | 'never';
 }
 
-export interface CashfreeConstructor {
-  new (config: { mode: 'sandbox' | 'production' }): CashfreeInstance;
+interface CheckoutOptions {
+  paymentSessionId: string;
+  redirectTarget?: '_self' | '_blank' | '_modal';
+  returnUrl?: string;
+}
+
+interface ComponentOptions {
+  values?: Record<string, any>;
+  style?: { base?: Record<string, string> };
+}
+
+interface PaymentComponent {
+  mount: (container: HTMLElement | string) => void;
+  on: (event: string, callback: (data: any) => void) => void;
+}
+
+interface Cashfree {
+  pay?: (options: PayOptions) => Promise<{
+    error?: { message: string };
+    paymentDetails?: { paymentMessage: string };
+    redirect?: boolean;
+  }>;
+  checkout?: (options: CheckoutOptions) => void;
+  create?: (type: string, options: ComponentOptions) => PaymentComponent;
+  version?: string;
+}
+
+interface CashfreeConstructor {
+  (config: { mode: 'sandbox' | 'production' }): Cashfree;
+  new (): Cashfree;
 }
 
 declare global {
