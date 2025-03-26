@@ -2,12 +2,13 @@
 const axios = require('axios');
 
 exports.handler = async (event) => {
-  console.log('Function invoked with event:', event);
+  console.log('Function invoked:', event);
 
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Content-Type': 'application/json',
   };
 
   if (event.httpMethod === 'OPTIONS') {
@@ -26,11 +27,16 @@ exports.handler = async (event) => {
 
   try {
     const body = JSON.parse(event.body || '{}');
-    const { orderId, customerDetails } = body;
-    console.log('Parsed body:', { orderId, customerDetails });
+    console.log('Request body:', body);
 
+    const { orderId, customerDetails } = body;
     if (!orderId || !customerDetails) {
       throw new Error('Missing orderId or customerDetails');
+    }
+
+    const { customerId, customerPhone, customerEmail, customerName } = customerDetails;
+    if (!customerId || !customerPhone || !customerEmail || !customerName) {
+      throw new Error('Missing required customer details');
     }
 
     const isProduction = process.env.NODE_ENV === 'production';
@@ -41,8 +47,7 @@ exports.handler = async (event) => {
     const cashfreeSecretKey = process.env.CASHFREE_SECRET_KEY;
 
     console.log('Config:', {
-      isProduction,
-      cashfreeApiUrl,
+      url: cashfreeApiUrl,
       appIdSet: !!cashfreeAppId,
       secretKeySet: !!cashfreeSecretKey,
     });
@@ -51,23 +56,20 @@ exports.handler = async (event) => {
       throw new Error('Missing Cashfree credentials');
     }
 
-    const payload = {
+    const orderPayload = {
       order_id: orderId,
-      order_amount: 250,
+      order_amount: 250, // Hardcoded for now; adjust as needed
       order_currency: 'INR',
       customer_details: {
-        customer_id: customerDetails.customerId,
-        customer_name: customerDetails.customerName,
-        customer_email: customerDetails.customerEmail,
-        customer_phone: customerDetails.customerPhone,
-      },
-      order_meta: {
-        return_url: `${event.headers.origin || 'https://registertenant.netlify.app'}/payment/success?order_id={order_id}`,
+        customer_id: customerId,
+        customer_name: customerName,
+        customer_email: customerEmail,
+        customer_phone: customerPhone,
       },
     };
 
-    console.log('Sending payload to Cashfree:', payload);
-    const response = await axios.post(cashfreeApiUrl, payload, {
+    console.log('Sending to Cashfree:', orderPayload);
+    const response = await axios.post(cashfreeApiUrl, orderPayload, {
       headers: {
         'x-client-id': cashfreeAppId,
         'x-client-secret': cashfreeSecretKey,
@@ -80,11 +82,7 @@ exports.handler = async (event) => {
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({
-        payment_session_id: response.data.payment_session_id,
-        order_id: response.data.order_id,
-        order_status: response.data.order_status,
-      }),
+      body: JSON.stringify({ payment_session_id: response.data.payment_session_id }),
     };
   } catch (error) {
     console.error('Create order error:', {

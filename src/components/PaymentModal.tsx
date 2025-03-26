@@ -54,7 +54,7 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
           },
         };
 
-        console.log('Creating order with payload:', payload);
+        console.log('Creating order with payload:', JSON.stringify(payload, null, 2));
         const response = await axios.post<CashfreeOrderResponse>(
           '/.netlify/functions/create-orders',
           payload,
@@ -101,10 +101,12 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
           axiosError: isAxiosError(err) ? {
             status: err.response?.status,
             data: err.response?.data,
-          } : 'No response data',
+          } : null,
         });
         setError(
-          err instanceof Error
+          isAxiosError(err) && err.response?.data?.error
+            ? err.response.data.error
+            : err instanceof Error
             ? err.message
             : 'Payment initialization failed. Please try again or contact support.'
         );
