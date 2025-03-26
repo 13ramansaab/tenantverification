@@ -1,9 +1,8 @@
-// src/components/PaymentModal.tsx
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 import type { TenantFormData } from '../types';
-import type { CashfreeOrderResponse, Cashfree } from '@/types/cashfree'; // Should resolve to src/types/cashfree.ts
+import type { CashfreeOrderResponse, Cashfree } from '@/types/cashfree';
 
 interface PaymentModalProps {
   onClose: () => void;
@@ -57,7 +56,12 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
         console.log('Creating order with payload:', payload);
         const response = await axios.post<CashfreeOrderResponse>(
           '/.netlify/functions/create-orders',
-          payload
+          payload,
+          {
+            headers: {
+              'Content-Type': 'application/json',
+            }
+          }
         );
         console.log('Order creation response:', response.data);
 
@@ -92,10 +96,18 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
         console.log('Checkout initiated; expecting redirect');
       } catch (error) {
         console.error('Payment initialization error:', {
-          message: error instanceof Error ? error.message : String(error),
+          message: error instanceof Error ? error.message : 'Unknown error',
           stack: error instanceof Error ? error.stack : undefined,
+          axiosError: error.response ? {
+            status: error.response.status,
+            data: error.response.data,
+          } : 'No response data',
         });
-        setError(error instanceof Error ? error.message : 'Payment initialization failed');
+        setError(
+          error instanceof Error
+            ? error.message
+            : 'Payment initialization failed. Please try again or contact support.'
+        );
         setIsProcessing(false);
       }
     };
