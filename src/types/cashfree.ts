@@ -47,7 +47,7 @@ export interface Cashfree {
 }
 
 export interface CashfreeConstructor {
-  (config: { mode: 'sandbox' | 'production' }): Cashfree;
+  (config: { mode: 'development' | 'production' }): Cashfree;
   new (): Cashfree;
 }
 
