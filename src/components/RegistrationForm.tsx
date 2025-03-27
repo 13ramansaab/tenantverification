@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { TenantFormData } from '../types';
-import { fetchPGOwnerByMobile, saveTenantData, fetchStates, fetchDistricts, fetchPoliceStations, uploadFile } from '../api';
+import { fetchPGOwnerByMobile, saveTenantData, fetchStates, fetchDistricts, fetchPoliceStations, uploadImage } from '../api';
 import { saveFormData, loadFormData, clearFormData, handleFilePreview } from '../utils/formPersistence';
 import PaymentModal from './PaymentModal';
 import Footer from './Footer';
@@ -242,15 +242,15 @@ function RegistrationForm({ onPaymentComplete }: RegistrationFormProps) {
       const uploadPromises: Promise<string>[] = [];
       
       if (photoFile) {
-        uploadPromises.push(uploadFile(photoFile, `tenants/${formData.mobileNo}/photo`));
+        uploadPromises.push(uploadImage(photoFile, `tenants/${formData.mobileNo}/photo`));
       }
       
       if (aadharFrontFile) {
-        uploadPromises.push(uploadFile(aadharFrontFile, `tenants/${formData.mobileNo}/aadharFront`));
+        uploadPromises.push(uploadImage(aadharFrontFile, `tenants/${formData.mobileNo}/aadharFront`));
       }
 
       if (aadharBackFile) {
-        uploadPromises.push(uploadFile(aadharBackFile, `tenants/${formData.mobileNo}/aadharBack`));
+        uploadPromises.push(uploadImage(aadharBackFile, `tenants/${formData.mobileNo}/aadharBack`));
       }
 
       const [photoUrl, aadharFrontUrl, aadharBackUrl] = await Promise.all(uploadPromises);
@@ -696,7 +696,7 @@ function RegistrationForm({ onPaymentComplete }: RegistrationFormProps) {
                     type="checkbox"
                     checked={termsAccepted}
                     onChange={(e) => setTermsAccepted(e.target.checked)}
-                    className="w-4 h-4 border border-gray-300 rounded bg-gray-50 focus:ring-3 focus:ring-blue-300"
+                    className="w-4 h-4 border border-gray-300 rounded bg-gray-50  focus:ring-3 focus:ring-blue-300"
                     required
                     disabled={isSubmitting}
                   />
