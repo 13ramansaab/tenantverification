@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { TenantFormData } from '../types';
-import { fetchPGOwnerByMobile, saveTenantData, fetchStates, fetchDistricts, fetchPoliceStations, uploadImage } from '../api';
+import { fetchPGOwnerByMobile, saveTenantData, fetchStates, fetchDistricts, fetchPoliceStations } from '../api';
 import { saveFormData, loadFormData, clearFormData, handleFilePreview } from '../utils/formPersistence';
 import PaymentModal from './PaymentModal';
 import Footer from './Footer';
