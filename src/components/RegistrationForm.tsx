@@ -63,7 +63,6 @@ function RegistrationForm({ onPaymentComplete }: RegistrationFormProps) {
     if (savedData) {
       setFormData(savedData);
       
-      // Load districts and police stations if state/district are saved
       if (savedData.permanentAddress.state) {
         fetchDistricts(savedData.permanentAddress.state).then(setDistricts);
         
@@ -283,7 +282,6 @@ function RegistrationForm({ onPaymentComplete }: RegistrationFormProps) {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Personal Information */}
             <div>
               <h2 className="text-xl font-semibold mb-4">Personal Information</h2>
               <div className="grid grid-cols-2 gap-4">
@@ -323,28 +321,33 @@ function RegistrationForm({ onPaymentComplete }: RegistrationFormProps) {
                   required
                   disabled={isSubmitting}
                 />
-                <input
-                  type="date"
-                  placeholder="Date of Birth"
-                  className="border rounded p-2"
-                  value={formData.dateOfBirth}
-                  onChange={(e) => setFormData({...formData, dateOfBirth: e.target.value})}
-                  required
-                  disabled={isSubmitting}
-                />
-                <select
-                  className="border rounded p-2"
-                  value={formData.religion}
-                  onChange={(e) => setFormData({...formData, religion: e.target.value as any})}
-                  required
-                  disabled={isSubmitting}
-                >
-                  <option value="Hindu">Hindu</option>
-                  <option value="Muslim">Muslim</option>
-                  <option value="Sikh">Sikh</option>
-                  <option value="Christian">Christian</option>
-                  <option value="Others">Others</option>
-                </select>
+                <div className="col-span-1">
+                  <label className="block text-sm text-gray-600 mb-1">Date of Birth</label>
+                  <input
+                    type="date"
+                    className="border rounded p-2 w-full"
+                    value={formData.dateOfBirth}
+                    onChange={(e) => setFormData({...formData, dateOfBirth: e.target.value})}
+                    required
+                    disabled={isSubmitting}
+                  />
+                </div>
+                <div className="col-span-1">
+                  <label className="block text-sm text-gray-600 mb-1">Religion</label>
+                  <select
+                    className="border rounded p-2 w-full"
+                    value={formData.religion}
+                    onChange={(e) => setFormData({...formData, religion: e.target.value as any})}
+                    required
+                    disabled={isSubmitting}
+                  >
+                    <option value="Hindu">Hindu</option>
+                    <option value="Muslim">Muslim</option>
+                    <option value="Sikh">Sikh</option>
+                    <option value="Christian">Christian</option>
+                    <option value="Others">Others</option>
+                  </select>
+                </div>
                 <select
                   className="border rounded p-2"
                   value={formData.occupation}
@@ -357,9 +360,9 @@ function RegistrationForm({ onPaymentComplete }: RegistrationFormProps) {
               </div>
             </div>
 
-            {/* Family Member Information */}
             <div>
-              <h2 className="text-xl font-semibold mb-4">Family Member Information</h2>
+              <h2 className="text-xl font-semibold mb-2">Family Member Information</h2>
+              <p className="text-sm text-gray-600 mb-4">Please provide details of your father/mother/spouse</p>
               <div className="grid grid-cols-2 gap-4">
                 <input
                   type="text"
@@ -397,25 +400,26 @@ function RegistrationForm({ onPaymentComplete }: RegistrationFormProps) {
                   required
                   disabled={isSubmitting}
                 />
-                <select
-                  className="border rounded p-2"
-                  value={formData.familyMember.relation}
-                  onChange={(e) => setFormData({
-                    ...formData,
-                    familyMember: {...formData.familyMember, relation: e.target.value as any}
-                  })}
-                  required
-                  disabled={isSubmitting}
-                >
-                  <option value="S/O">S/O</option>
-                  <option value="D/O">D/O</option>
-                  <option value="W/O">W/O</option>
-                  <option value="Wd/O">Wd/O</option>
-                </select>
+                <div className="relative">
+                  <select
+                    className="border rounded p-2 w-full appearance-none"
+                    value={formData.familyMember.relation}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      familyMember: {...formData.familyMember, relation: e.target.value as any}
+                    })}
+                    required
+                    disabled={isSubmitting}
+                  >
+                    <option value="S/O">Son of (S/O)</option>
+                    <option value="D/O">Daughter of (D/O)</option>
+                    <option value="W/O">Wife of (W/O)</option>
+                    <option value="Wd/O">Widow of (Wd/O)</option>
+                  </select>
+                </div>
               </div>
             </div>
 
-            {/* Present Address */}
             <div>
               <h2 className="text-xl font-semibold mb-4">Present Address</h2>
               <div className="grid grid-cols-2 gap-4">
@@ -443,7 +447,6 @@ function RegistrationForm({ onPaymentComplete }: RegistrationFormProps) {
               </div>
             </div>
 
-            {/* Permanent Address */}
             <div>
               <h2 className="text-xl font-semibold mb-4">Permanent Address</h2>
               <div className="grid grid-cols-2 gap-4">
@@ -567,7 +570,6 @@ function RegistrationForm({ onPaymentComplete }: RegistrationFormProps) {
               </div>
             </div>
 
-            {/* Documents Section */}
             <div>
               <h2 className="text-xl font-semibold mb-4">Documents</h2>
               <div className="grid grid-cols-2 gap-4">
@@ -646,7 +648,6 @@ function RegistrationForm({ onPaymentComplete }: RegistrationFormProps) {
               </div>
             </div>
 
-            {/* Terms & Conditions */}
             <div className="border-t pt-6">
               <div className="flex items-start">
                 <div className="flex items-center h-5">
