@@ -1,4 +1,3 @@
-// functions/create-orders.js
 const axios = require('axios');
 
 exports.handler = async (event) => {
@@ -29,12 +28,20 @@ exports.handler = async (event) => {
     const body = JSON.parse(event.body || '{}');
     console.log('Request body:', body);
 
-    const { orderId, customerDetails } = body;
+    // Normalize keys to handle both snake_case and camelCase
+    const orderId = body.order_id || body.orderId;
+    const customerDetails = body.customer_details || body.customerDetails;
+
     if (!orderId || !customerDetails) {
       throw new Error('Missing orderId or customerDetails');
     }
 
-    const { customerId, customerPhone, customerEmail, customerName } = customerDetails;
+    // Normalize nested customer details keys
+    const customerId = customerDetails.customer_id || customerDetails.customerId;
+    const customerPhone = customerDetails.customer_phone || customerDetails.customerPhone;
+    const customerEmail = customerDetails.customer_email || customerDetails.customerEmail;
+    const customerName = customerDetails.customer_name || customerDetails.customerName;
+
     if (!customerId || !customerPhone || !customerEmail || !customerName) {
       throw new Error('Missing required customer details');
     }
