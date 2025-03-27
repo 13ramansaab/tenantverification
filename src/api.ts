@@ -4,16 +4,16 @@ import { v4 as uuidv4 } from 'uuid';
 import { policeStationsDb, pgVerificationsDb, storage } from './firebase';
 import { TenantFormData, PGOwner } from './types';
 
-export const uploadImage = async (file: File, path: string): Promise<string> => {
+export const uploadFile = async (file: File, path: string): Promise<string> => {
   try {
     const fileExtension = file.name.split('.').pop()?.toLowerCase() || 'jpg';
     const fileName = `${uuidv4()}.${fileExtension}`;
-    const imageRef = storageRef(storage, `${path}/${fileName}`);
+    const fileRef = storageRef(storage, `${path}/${fileName}`);
     
-    await uploadBytes(imageRef, file);
-    return await getDownloadURL(imageRef);
+    await uploadBytes(fileRef, file);
+    return await getDownloadURL(fileRef);
   } catch (error) {
-    console.error('Error uploading image:', error);
+    console.error('Error uploading file:', error);
     throw error;
   }
 };
@@ -120,7 +120,8 @@ export const saveTenantData = async (ownerMobileNo: string, tenantData: TenantFo
         photoIdType: tenantData.documents.photoIdType,
         photoIdNumber: tenantData.documents.photoIdNumber,
         photo: tenantData.documents.photo,
-        addressProof: tenantData.documents.addressProof
+        aadharFront: tenantData.documents.aadharFront,
+        aadharBack: tenantData.documents.aadharBack
       },
       registrationDate: new Date().toISOString()
     });

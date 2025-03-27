@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { TenantFormData } from '../types';
-import { fetchPGOwnerByMobile, saveTenantData, fetchStates, fetchDistricts, fetchPoliceStations, uploadImage } from '../api';
+import { fetchPGOwnerByMobile, saveTenantData, fetchStates, fetchDistricts, fetchPoliceStations, uploadFile } from '../api';
 import { saveFormData, loadFormData, clearFormData, handleFilePreview } from '../utils/formPersistence';
 import PaymentModal from './PaymentModal';
 import Footer from './Footer';
@@ -42,7 +42,8 @@ const defaultFormData: TenantFormData = {
     photoIdType: 'Aadhar Card',
     photoIdNumber: '',
     photo: '',
-    addressProof: ''
+    aadharFront: '',
+    aadharBack: ''
   }
 };
 
@@ -52,7 +53,8 @@ function RegistrationForm({ onPaymentComplete }: RegistrationFormProps) {
   const [districts, setDistricts] = useState<string[]>([]);
   const [policeStations, setPoliceStations] = useState<string[]>([]);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
-  const [addressProofFile, setAddressProofFile] = useState<File | null>(null);
+  const [aadharFrontFile, setAadharFrontFile] = useState<File | null>(null);
+  const [aadharBackFile, setAadharBackFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
@@ -154,45 +156,55 @@ function RegistrationForm({ onPaymentComplete }: RegistrationFormProps) {
     fetchOwnerDetails();
   }, [formData.presentAddress.ownerMobileNo]);
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, field: 'photo' | 'addressProof') => {
+  const handleFileChange = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    field: 'photo' | 'aadharFront' | 'aadharBack'
+  ) => {
     const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 1024 * 1024) {
-        alert('File size must be less than 1MB');
-        return;
-      }
+    if (!file) return;
 
-      if (!file.type.startsWith('image/')) {
-        alert('Only image files are allowed');
-        return;
-      }
+    if (!file.type.startsWith('image/')) {
+      alert('Please upload an image file (JPG/PNG)');
+      return;
+    }
 
-      if (field === 'photo') {
+    if (file.size > 1024 * 1024) {
+      alert('File size must be less than 1MB');
+      return;
+    }
+
+    switch (field) {
+      case 'photo':
         setPhotoFile(file);
-      } else {
-        setAddressProofFile(file);
-      }
-      
-      try {
-        const preview = await handleFilePreview(file);
-        setFormData(prev => ({
-          ...prev,
-          documents: {
-            ...prev.documents,
-            [field]: preview
-          }
-        }));
-      } catch (error) {
-        console.error('Error generating file preview:', error);
-        alert('Failed to preview file');
-      }
+        break;
+      case 'aadharFront':
+        setAadharFrontFile(file);
+        break;
+      case 'aadharBack':
+        setAadharBackFile(file);
+        break;
+    }
+
+    try {
+      const preview = await handleFilePreview(file);
+      setFormData(prev => ({
+        ...prev,
+        documents: {
+          ...prev.documents,
+          [field]: preview
+        }
+      }));
+    } catch (error) {
+      console.error('Error generating file preview:', error);
+      alert('Failed to preview file');
     }
   };
 
   const resetForm = () => {
     setFormData(defaultFormData);
     setPhotoFile(null);
-    setAddressProofFile(null);
+    setAadharFrontFile(null);
+    setAadharBackFile(null);
     setTermsAccepted(false);
     setSubmitError(null);
     clearFormData();
@@ -230,21 +242,26 @@ function RegistrationForm({ onPaymentComplete }: RegistrationFormProps) {
       const uploadPromises: Promise<string>[] = [];
       
       if (photoFile) {
-        uploadPromises.push(uploadImage(photoFile, `tenants/${formData.mobileNo}/photo`));
+        uploadPromises.push(uploadFile(photoFile, `tenants/${formData.mobileNo}/photo`));
       }
       
-      if (addressProofFile) {
-        uploadPromises.push(uploadImage(addressProofFile, `tenants/${formData.mobileNo}/addressProof`));
+      if (aadharFrontFile) {
+        uploadPromises.push(uploadFile(aadharFrontFile, `tenants/${formData.mobileNo}/aadharFront`));
       }
 
-      const [photoUrl, addressProofUrl] = await Promise.all(uploadPromises);
+      if (aadharBackFile) {
+        uploadPromises.push(uploadFile(aadharBackFile, `tenants/${formData.mobileNo}/aadharBack`));
+      }
+
+      const [photoUrl, aadharFrontUrl, aadharBackUrl] = await Promise.all(uploadPromises);
 
       const updatedFormData: TenantFormData = {
         ...formData,
         documents: {
           ...formData.documents,
           photo: photoUrl || formData.documents.photo,
-          addressProof: addressProofUrl || formData.documents.addressProof
+          aadharFront: aadharFrontUrl || formData.documents.aadharFront,
+          aadharBack: aadharBackUrl || formData.documents.aadharBack
         }
       };
 
@@ -602,7 +619,7 @@ function RegistrationForm({ onPaymentComplete }: RegistrationFormProps) {
                 <div className="col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Passport Size Photo
-                    <span className="text-xs text-gray-500 ml-2">(Max size: 1MB, Format: PNG/JPG)</span>
+                    <span className="text-xs text-gray-500 ml-2">(Max size: 1MB, Format: JPG/PNG)</span>
                   </label>
                   <input
                     type="file"
@@ -624,21 +641,44 @@ function RegistrationForm({ onPaymentComplete }: RegistrationFormProps) {
                 </div>
                 <div className="col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Address Proof (Aadhar Card)
-                    <span className="text-xs text-gray-500 ml-2">(Max size: 1MB, Format: PNG/JPG)</span>
+                    Aadhar Card - Front Side
+                    <span className="text-xs text-gray-500 ml-2">(Max size: 1MB, Format: JPG/PNG)</span>
                   </label>
                   <input
                     type="file"
                     accept="image/*"
                     className="w-full border rounded p-2"
-                    onChange={(e) => handleFileChange(e, 'addressProof')}
-                    required={!formData.documents.addressProof}
+                    onChange={(e) => handleFileChange(e, 'aadharFront')}
+                    required={!formData.documents.aadharFront}
                     disabled={isSubmitting}
                   />
-                  {formData.documents.addressProof && (
+                  {formData.documents.aadharFront && (
                     <div className="mt-2">
                       <img
-                        src={formData.documents.addressProof}
+                        src={formData.documents.aadharFront}
+                        alt="Preview"
+                        className="h-32 object-contain"
+                      />
+                    </div>
+                  )}
+                </div>
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Aadhar Card - Back Side
+                    <span className="text-xs text-gray-500 ml-2">(Max size: 1MB, Format: JPG/PNG)</span>
+                  </label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="w-full border rounded p-2"
+                    onChange={(e) => handleFileChange(e, 'aadharBack')}
+                    required={!formData.documents.aadharBack}
+                    disabled={isSubmitting}
+                  />
+                  {formData.documents.aadharBack && (
+                    <div className="mt-2">
+                      <img
+                        src={formData.documents.aadharBack}
                         alt="Preview"
                         className="h-32 object-contain"
                       />

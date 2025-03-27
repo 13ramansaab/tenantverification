@@ -5,7 +5,8 @@ const FILE_PREVIEW_KEY = 'tenant_registration_file_previews';
 
 interface FilePreviewData {
   photo?: string;
-  addressProof?: string;
+  aadharFront?: string;
+  aadharBack?: string;
 }
 
 export const saveFormData = (data: TenantFormData) => {
@@ -16,18 +17,22 @@ export const saveFormData = (data: TenantFormData) => {
       documents: {
         ...data.documents,
         photo: '',
-        addressProof: ''
+        aadharFront: '',
+        aadharBack: ''
       }
     };
     localStorage.setItem(FORM_DATA_KEY, JSON.stringify(formDataToSave));
 
     // Separately save file previews if they exist
     const filePreviewData: FilePreviewData = {};
-    if (data.documents.photo && data.documents.photo.startsWith('data:image')) {
+    if (data.documents.photo && data.documents.photo.startsWith('data:')) {
       filePreviewData.photo = data.documents.photo;
     }
-    if (data.documents.addressProof && data.documents.addressProof.startsWith('data:image')) {
-      filePreviewData.addressProof = data.documents.addressProof;
+    if (data.documents.aadharFront && data.documents.aadharFront.startsWith('data:')) {
+      filePreviewData.aadharFront = data.documents.aadharFront;
+    }
+    if (data.documents.aadharBack && data.documents.aadharBack.startsWith('data:')) {
+      filePreviewData.aadharBack = data.documents.aadharBack;
     }
     
     if (Object.keys(filePreviewData).length > 0) {
@@ -53,7 +58,8 @@ export const loadFormData = (): TenantFormData | null => {
     if (savedFilePreviews) {
       const filePreviews: FilePreviewData = JSON.parse(savedFilePreviews);
       formData.documents.photo = filePreviews.photo || '';
-      formData.documents.addressProof = filePreviews.addressProof || '';
+      formData.documents.aadharFront = filePreviews.aadharFront || '';
+      formData.documents.aadharBack = filePreviews.aadharBack || '';
     }
 
     return formData;
@@ -72,7 +78,7 @@ export const clearFormData = () => {
   }
 };
 
-export const handleFilePreview = (file: File): Promise<string> => {
+export const handleFilePreview = async (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => {
@@ -83,6 +89,11 @@ export const handleFilePreview = (file: File): Promise<string> => {
       }
     };
     reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(file);
+
+    if (file.type.startsWith('image/')) {
+      reader.readAsDataURL(file);
+    } else {
+      reject(new Error('Unsupported file type'));
+    }
   });
 };

@@ -31,7 +31,8 @@ export interface TenantFormData {
     photoIdType: 'Aadhar Card' | 'Voter Card' | 'Driving License';
     photoIdNumber: string;
     photo: string;
-    addressProof: string;
+    aadharFront: string;
+    aadharBack: string;
   };
   payment?: {
     status: 'pending' | 'completed';
