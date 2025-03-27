@@ -42,7 +42,7 @@ exports.handler = async (event) => {
     const isProduction = process.env.NODE_ENV === 'production';
     const cashfreeApiUrl = isProduction
       ? 'https://api.cashfree.com/pg/orders'
-      : 'https://sandbox.cashfree.com/pg/orders';
+      : 'https://api.cashfree.com/pg/orders';
     const cashfreeAppId = process.env.CASHFREE_APP_ID;
     const cashfreeSecretKey = process.env.CASHFREE_SECRET_KEY;
 
