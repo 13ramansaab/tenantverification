@@ -317,7 +317,6 @@ function RegistrationForm({ onPaymentComplete }: RegistrationFormProps) {
                   className="border rounded p-2"
                   value={formData.lastName}
                   onChange={(e) => setFormData({...formData, lastName: e.target.value})}
-                  required
                   disabled={isSubmitting}
                 />
                 <input
@@ -335,7 +334,6 @@ function RegistrationForm({ onPaymentComplete }: RegistrationFormProps) {
                   className="border rounded p-2"
                   value={formData.email}
                   onChange={(e) => setFormData({...formData, email: e.target.value})}
-                  required
                   disabled={isSubmitting}
                 />
                 <div className="col-span-1">
@@ -402,7 +400,6 @@ function RegistrationForm({ onPaymentComplete }: RegistrationFormProps) {
                     ...formData,
                     familyMember: {...formData.familyMember, lastName: e.target.value}
                   })}
-                  required
                   disabled={isSubmitting}
                 />
                 <input
@@ -533,7 +530,7 @@ function RegistrationForm({ onPaymentComplete }: RegistrationFormProps) {
                     ...formData,
                     permanentAddress: {...formData.permanentAddress, streetName: e.target.value}
                   })}
-                  required
+                  
                   disabled={isSubmitting}
                 />
                 <input
@@ -545,7 +542,7 @@ function RegistrationForm({ onPaymentComplete }: RegistrationFormProps) {
                     ...formData,
                     permanentAddress: {...formData.permanentAddress, locality: e.target.value}
                   })}
-                  required
+                  
                   disabled={isSubmitting}
                 />
                 <input
@@ -569,7 +566,7 @@ function RegistrationForm({ onPaymentComplete }: RegistrationFormProps) {
                     ...formData,
                     permanentAddress: {...formData.permanentAddress, tehsil: e.target.value}
                   })}
-                  required
+                  
                   disabled={isSubmitting}
                 />
                 <input
@@ -581,7 +578,7 @@ function RegistrationForm({ onPaymentComplete }: RegistrationFormProps) {
                     ...formData,
                     permanentAddress: {...formData.permanentAddress, pincode: e.target.value}
                   })}
-                  required
+                  
                   disabled={isSubmitting}
                 />
               </div>
