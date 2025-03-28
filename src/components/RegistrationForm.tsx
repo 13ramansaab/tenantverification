@@ -64,10 +64,8 @@ function RegistrationForm({ onPaymentComplete }: RegistrationFormProps) {
     const savedData = loadFormData();
     if (savedData) {
       setFormData(savedData);
-      
       if (savedData.permanentAddress.state) {
         fetchDistricts(savedData.permanentAddress.state).then(setDistricts);
-        
         if (savedData.permanentAddress.district) {
           fetchPoliceStations(
             savedData.permanentAddress.state,
@@ -81,6 +79,7 @@ function RegistrationForm({ onPaymentComplete }: RegistrationFormProps) {
   useEffect(() => {
     if (!isSubmitting) {
       saveFormData(formData);
+      localStorage.setItem('tenantFormData', JSON.stringify(formData)); // Ensure persistence
     }
   }, [formData, isSubmitting]);
 
@@ -99,11 +98,7 @@ function RegistrationForm({ onPaymentComplete }: RegistrationFormProps) {
         setDistricts(districtsList);
         setFormData(prev => ({
           ...prev,
-          permanentAddress: {
-            ...prev.permanentAddress,
-            district: '',
-            policeStation: ''
-          }
+          permanentAddress: { ...prev.permanentAddress, district: '', policeStation: '' }
         }));
       }
     };
@@ -120,10 +115,7 @@ function RegistrationForm({ onPaymentComplete }: RegistrationFormProps) {
         setPoliceStations(stationsList);
         setFormData(prev => ({
           ...prev,
-          permanentAddress: {
-            ...prev.permanentAddress,
-            policeStation: ''
-          }
+          permanentAddress: { ...prev.permanentAddress, policeStation: '' }
         }));
       }
     };
@@ -134,23 +126,13 @@ function RegistrationForm({ onPaymentComplete }: RegistrationFormProps) {
     const fetchOwnerDetails = async () => {
       if (formData.presentAddress.ownerMobileNo) {
         const owner = await fetchPGOwnerByMobile(formData.presentAddress.ownerMobileNo);
-        if (owner) {
-          setFormData(prev => ({
-            ...prev,
-            presentAddress: {
-              ...prev.presentAddress,
-              pgName: owner.pgName || ''
-            }
-          }));
-        } else {
-          setFormData(prev => ({
-            ...prev,
-            presentAddress: {
-              ...prev.presentAddress,
-              pgName: ''
-            }
-          }));
-        }
+        setFormData(prev => ({
+          ...prev,
+          presentAddress: {
+            ...prev.presentAddress,
+            pgName: owner ? owner.pgName : ''
+          }
+        }));
       }
     };
     fetchOwnerDetails();
@@ -189,10 +171,7 @@ function RegistrationForm({ onPaymentComplete }: RegistrationFormProps) {
       const preview = await handleFilePreview(file);
       setFormData(prev => ({
         ...prev,
-        documents: {
-          ...prev.documents,
-          [field]: preview
-        }
+        documents: { ...prev.documents, [field]: preview }
       }));
     } catch (error) {
       console.error('Error generating file preview:', error);
@@ -208,6 +187,7 @@ function RegistrationForm({ onPaymentComplete }: RegistrationFormProps) {
     setTermsAccepted(false);
     setSubmitError(null);
     clearFormData();
+    localStorage.removeItem('tenantFormData');
   };
 
   const handleClearForm = () => {
@@ -236,44 +216,8 @@ function RegistrationForm({ onPaymentComplete }: RegistrationFormProps) {
   };
 
   const handlePaymentComplete = async () => {
-    try {
-      setIsSubmitting(true);
-
-      const uploadPromises: Promise<string>[] = [];
-      
-      if (photoFile) {
-        uploadPromises.push(uploadImage(photoFile, `tenants/${formData.mobileNo}/photo`));
-      }
-      
-      if (aadharFrontFile) {
-        uploadPromises.push(uploadImage(aadharFrontFile, `tenants/${formData.mobileNo}/aadharFront`));
-      }
-
-      if (aadharBackFile) {
-        uploadPromises.push(uploadImage(aadharBackFile, `tenants/${formData.mobileNo}/aadharBack`));
-      }
-
-      const [photoUrl, aadharFrontUrl, aadharBackUrl] = await Promise.all(uploadPromises);
-
-      const updatedFormData: TenantFormData = {
-        ...formData,
-        documents: {
-          ...formData.documents,
-          photo: photoUrl || formData.documents.photo,
-          aadharFront: aadharFrontUrl || formData.documents.aadharFront,
-          aadharBack: aadharBackUrl || formData.documents.aadharBack
-        }
-      };
-
-      await saveTenantData(formData.presentAddress.ownerMobileNo, updatedFormData);
-      setShowPayment(false);
-      onPaymentComplete();
-    } catch (error) {
-      console.error('Error saving tenant data:', error);
-      setSubmitError('Error saving tenant data. Please try again.');
-    } finally {
-      setIsSubmitting(false);
-    }
+    setShowPayment(false);
+    onPaymentComplete(); // Trigger success page in App.jsx
   };
 
   return (
@@ -530,7 +474,6 @@ function RegistrationForm({ onPaymentComplete }: RegistrationFormProps) {
                     ...formData,
                     permanentAddress: {...formData.permanentAddress, streetName: e.target.value}
                   })}
-                  
                   disabled={isSubmitting}
                 />
                 <input
@@ -542,7 +485,6 @@ function RegistrationForm({ onPaymentComplete }: RegistrationFormProps) {
                     ...formData,
                     permanentAddress: {...formData.permanentAddress, locality: e.target.value}
                   })}
-                  
                   disabled={isSubmitting}
                 />
                 <input
@@ -566,7 +508,6 @@ function RegistrationForm({ onPaymentComplete }: RegistrationFormProps) {
                     ...formData,
                     permanentAddress: {...formData.permanentAddress, tehsil: e.target.value}
                   })}
-                  
                   disabled={isSubmitting}
                 />
                 <input
@@ -578,7 +519,6 @@ function RegistrationForm({ onPaymentComplete }: RegistrationFormProps) {
                     ...formData,
                     permanentAddress: {...formData.permanentAddress, pincode: e.target.value}
                   })}
-                  
                   disabled={isSubmitting}
                 />
               </div>
@@ -693,7 +633,7 @@ function RegistrationForm({ onPaymentComplete }: RegistrationFormProps) {
                     type="checkbox"
                     checked={termsAccepted}
                     onChange={(e) => setTermsAccepted(e.target.checked)}
-                    className="w-4 h-4 border border-gray-300 rounded bg-gray-50  focus:ring-3 focus:ring-blue-300"
+                    className="w-4 h-4 border border-gray-300 rounded bg-gray-50 focus:ring-3 focus:ring-blue-300"
                     required
                     disabled={isSubmitting}
                   />
@@ -733,7 +673,6 @@ function RegistrationForm({ onPaymentComplete }: RegistrationFormProps) {
               setIsSubmitting(false);
             }}
             customerData={formData}
-            onPaymentComplete={handlePaymentComplete}
           />
         )}
 

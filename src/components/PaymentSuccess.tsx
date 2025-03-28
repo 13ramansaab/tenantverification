@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { CashfreeOrderStatus } from '@/types/cashfree';
-import { AxiosError } from 'axios';
+import { saveTenantData } from '../api';
 
 const PaymentSuccess = () => {
   const [isProcessing, setIsProcessing] = useState(true);
@@ -9,7 +8,7 @@ const PaymentSuccess = () => {
   const [isPaid, setIsPaid] = useState(false);
 
   useEffect(() => {
-    const verifyPayment = async () => {
+    const verifyAndSavePayment = async () => {
       try {
         const urlParams = new URLSearchParams(window.location.search);
         const orderId = urlParams.get('order_id');
@@ -19,47 +18,41 @@ const PaymentSuccess = () => {
 
         console.log('Verifying payment for orderId:', orderId);
         const functionUrl = 'https://registertenant.netlify.app/.netlify/functions/verify-payments';
-        const response = await axios.get<CashfreeOrderStatus>(
+        const response = await axios.get(
           `${functionUrl}?orderId=${orderId}`,
           { headers: { Accept: 'application/json' } }
         );
         console.log('Verification response:', response.data);
 
-        if (!response.data || typeof response.data.order_status !== 'string') {
-          throw new Error('Invalid verification response from server');
-        }
-
-        if (response.data.order_status === 'PAID') {
-          setIsPaid(true);
-          setTimeout(() => {
-            window.location.href = '/';
-          }, 5000);
-        } else {
+        if (response.data.order_status !== 'PAID') {
           throw new Error(`Payment status: ${response.data.order_status || 'unknown'}`);
         }
-      } catch (error: unknown) {
-        const isAxiosError = (err: any): err is AxiosError => err.isAxiosError || (err.response && err.request);
-        const err = error as Error | AxiosError;
 
-        console.error('Verification error:', {
-          message: err instanceof Error ? err.message : 'Unknown error',
-          stack: err instanceof Error ? err.stack : undefined,
-          axiosError: isAxiosError(err) ? {
-            status: err.response?.status,
-            data: err.response?.data,
-          } : null,
-        });
-        setError(
-          err instanceof Error
-            ? err.message
-            : 'Payment verification failed. Please try again or contact support.'
-        );
+        // Load tenant data from localStorage
+        const tenantData = JSON.parse(localStorage.getItem('tenantFormData') || '{}');
+        const ownerMobileNo = tenantData.presentAddress?.ownerMobileNo;
+        if (!ownerMobileNo || !tenantData.mobileNo) {
+          throw new Error('Missing tenant data for submission');
+        }
+
+        // Save to Firebase
+        await saveTenantData(ownerMobileNo, tenantData);
+        console.log('Tenant data saved successfully');
+
+        setIsPaid(true);
+        setTimeout(() => {
+          localStorage.removeItem('tenantFormData'); // Clear after save
+          window.location.href = '/';
+        }, 5000);
+      } catch (error) {
+        console.error('Verification or save error:', error);
+        setError(error.message || 'Payment verification or data save failed.');
       } finally {
         setIsProcessing(false);
       }
     };
 
-    verifyPayment();
+    verifyAndSavePayment();
   }, []);
 
   if (error) {

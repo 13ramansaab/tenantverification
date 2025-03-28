@@ -1,27 +1,13 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
-import type { TenantFormData } from '../types';
-import type { CashfreeOrderResponse, Cashfree } from '@/types/cashfree';
-import { AxiosError } from 'axios';
 
-// Define the expected error response shape from the server
-interface ServerErrorResponse {
-  error?: string;
-}
-
-interface PaymentModalProps {
-  onClose: () => void;
-  customerData: TenantFormData;
-  onPaymentComplete: () => Promise<void>;
-}
-
-const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModalProps) => {
+const PaymentModal = ({ onClose, customerData }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const loadCashfreeSDK = () => {
-    return new Promise<void>((resolve, reject) => {
+    return new Promise((resolve, reject) => {
       if (typeof window.Cashfree !== 'undefined') {
         console.log('Cashfree SDK already loaded');
         resolve();
@@ -60,7 +46,7 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
         };
 
         console.log('Creating order with payload:', JSON.stringify(payload, null, 2));
-        const response = await axios.post<CashfreeOrderResponse>(
+        const response = await axios.post(
           '/.netlify/functions/create-orders',
           payload,
           { headers: { 'Content-Type': 'application/json' } }
@@ -78,49 +64,29 @@ const PaymentModal = ({ onClose, customerData, onPaymentComplete }: PaymentModal
           throw new Error('Cashfree SDK not loaded');
         }
 
-        const cashfree: Cashfree = window.Cashfree({
+        const cashfree = window.Cashfree({
           mode: process.env.NODE_ENV === 'production' ? 'production' : 'sandbox',
         });
         console.log('Cashfree instance initialized:', cashfree);
 
-        if (!cashfree.checkout) {
-          throw new Error('Cashfree checkout method is unavailable');
-        }
-
         const checkoutOptions = {
           paymentSessionId: payment_session_id,
-          redirectTarget: '_self' as const,
+          redirectTarget: '_self',
           returnUrl: `${window.location.origin}/payment/success?order_id=${orderId}`,
         };
         console.log('Initiating checkout with options:', checkoutOptions);
 
         cashfree.checkout(checkoutOptions);
         console.log('Checkout initiated; expecting redirect');
-      } catch (error: unknown) {
-        const isAxiosError = (err: any): err is AxiosError<ServerErrorResponse> => err.isAxiosError || (err.response && err.request);
-        const err = error as Error | AxiosError<ServerErrorResponse>;
-
-        console.error('Payment initialization error:', {
-          message: err instanceof Error ? err.message : 'Unknown error',
-          stack: err instanceof Error ? err.stack : undefined,
-          axiosError: isAxiosError(err) ? {
-            status: err.response?.status,
-            data: err.response?.data,
-          } : null,
-        });
-        setError(
-          isAxiosError(err) && err.response?.data?.error
-            ? err.response.data.error
-            : err instanceof Error
-            ? err.message
-            : 'Payment initialization failed. Please try again or contact support.'
-        );
+      } catch (error) {
+        console.error('Payment initialization error:', error);
+        setError(error.message || 'Payment initialization failed. Please try again or contact support.');
         setIsProcessing(false);
       }
     };
 
     initializePayment();
-  }, [customerData, onPaymentComplete]);
+  }, [customerData]);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
