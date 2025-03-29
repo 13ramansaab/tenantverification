@@ -93,7 +93,8 @@ export const saveTenantData = async (ownerMobileNo: string, tenantData: TenantFo
         email: tenantData.email,
         dateOfBirth: tenantData.dateOfBirth,
         religion: tenantData.religion,
-        occupation: tenantData.occupation
+        occupation: tenantData.occupation,
+		gender: tenantData.gender
       },
       familyMember: {
         firstName: tenantData.familyMember.firstName,

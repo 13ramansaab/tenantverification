@@ -316,6 +316,22 @@ function RegistrationForm({ onPaymentComplete }: RegistrationFormProps) {
                 >
                   <option value="Service">Service</option>
                 </select>
+				
+				<div className="col-span-1">
+                  <label className="block text-sm text-gray-600 mb-1">Gender</label>
+                  <select
+                    className="border rounded p-2 w-full"
+                    value={formData.gender}
+                    onChange={(e) => setFormData({...formData, gender: e.target.value as 'M' | 'F' | 'Other'})}
+                    required
+                    disabled={isSubmitting}
+                  >
+                    <option value="M">Male</option>
+                    <option value="F">Female</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+				
               </div>
             </div>
 

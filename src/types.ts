@@ -6,6 +6,7 @@ export interface TenantFormData {
   dateOfBirth: string;
   religion: 'Hindu' | 'Muslim' | 'Sikh' | 'Christian' | 'Others';
   occupation: 'Service';
+  gender: 'M' | 'F' | 'Other'; // New field
   familyMember: {
     firstName: string;
     lastName: string;

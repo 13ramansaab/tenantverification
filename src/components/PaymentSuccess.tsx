@@ -28,20 +28,18 @@ const PaymentSuccess = () => {
           throw new Error(`Payment status: ${response.data.order_status || 'unknown'}`);
         }
 
-        // Load tenant data from localStorage
         const tenantData = JSON.parse(localStorage.getItem('tenantFormData') || '{}');
         const ownerMobileNo = tenantData.presentAddress?.ownerMobileNo;
         if (!ownerMobileNo || !tenantData.mobileNo) {
           throw new Error('Missing tenant data for submission');
         }
 
-        // Save to Firebase
         await saveTenantData(ownerMobileNo, tenantData);
         console.log('Tenant data saved successfully');
 
         setIsPaid(true);
         setTimeout(() => {
-          localStorage.removeItem('tenantFormData'); // Clear after save
+          localStorage.removeItem('tenantFormData');
           window.location.href = '/';
         }, 5000);
       } catch (error) {
