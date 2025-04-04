@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { TenantFormData } from '../types';
+import { TenantFormData, PGOwner, PGDetails } from '../types';
 import { fetchPGOwnerByMobile, saveTenantData, fetchStates, fetchDistricts, fetchPoliceStations } from '../api';
 import { saveFormData, loadFormData, clearFormData, handleFilePreview } from '../utils/formPersistence';
 import PaymentModal from './PaymentModal';
@@ -17,6 +17,7 @@ const defaultFormData: TenantFormData = {
   dateOfBirth: '',
   religion: 'Hindu',
   occupation: 'Service',
+  gender: 'M',
   familyMember: {
     firstName: '',
     lastName: '',
@@ -25,6 +26,7 @@ const defaultFormData: TenantFormData = {
   },
   presentAddress: {
     ownerMobileNo: '',
+    pgId: '',
     pgName: ''
   },
   permanentAddress: {
@@ -59,6 +61,8 @@ function RegistrationForm({ onPaymentComplete }: RegistrationFormProps) {
   const [showPayment, setShowPayment] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [currentOwner, setCurrentOwner] = useState<PGOwner | null>(null);
+  const [ownerPGs, setOwnerPGs] = useState<PGDetails[]>([]);
 
   useEffect(() => {
     const savedData = loadFormData();
@@ -79,7 +83,7 @@ function RegistrationForm({ onPaymentComplete }: RegistrationFormProps) {
   useEffect(() => {
     if (!isSubmitting) {
       saveFormData(formData);
-      localStorage.setItem('tenantFormData', JSON.stringify(formData)); // Ensure persistence
+      localStorage.setItem('tenantFormData', JSON.stringify(formData));
     }
   }, [formData, isSubmitting]);
 
@@ -124,19 +128,41 @@ function RegistrationForm({ onPaymentComplete }: RegistrationFormProps) {
 
   useEffect(() => {
     const fetchOwnerDetails = async () => {
-      if (formData.presentAddress.ownerMobileNo) {
+      if (formData.presentAddress.ownerMobileNo.length === 10) {
         const owner = await fetchPGOwnerByMobile(formData.presentAddress.ownerMobileNo);
-        setFormData(prev => ({
-          ...prev,
-          presentAddress: {
-            ...prev.presentAddress,
-            pgName: owner ? owner.pgName : ''
-          }
-        }));
+        setCurrentOwner(owner);
+        if (owner) {
+          setOwnerPGs(owner.pgs);
+          setFormData(prev => ({
+            ...prev,
+            presentAddress: {
+              ...prev.presentAddress,
+              pgId: '',
+              pgName: ''
+            }
+          }));
+        } else {
+          setOwnerPGs([]);
+        }
       }
     };
     fetchOwnerDetails();
   }, [formData.presentAddress.ownerMobileNo]);
+
+  useEffect(() => {
+    if (formData.presentAddress.pgId && ownerPGs.length > 0) {
+      const selectedPG = ownerPGs.find(pg => pg.id === formData.presentAddress.pgId);
+      if (selectedPG) {
+        setFormData(prev => ({
+          ...prev,
+          presentAddress: {
+            ...prev.presentAddress,
+            pgName: selectedPG.pgName
+          }
+        }));
+      }
+    }
+  }, [formData.presentAddress.pgId, ownerPGs]);
 
   const handleFileChange = async (
     e: React.ChangeEvent<HTMLInputElement>,
@@ -205,6 +231,11 @@ function RegistrationForm({ onPaymentComplete }: RegistrationFormProps) {
       return;
     }
 
+    if (!formData.presentAddress.pgId) {
+      setSubmitError('Please select a PG.');
+      return;
+    }
+
     try {
       setIsSubmitting(true);
       setShowPayment(true);
@@ -217,7 +248,7 @@ function RegistrationForm({ onPaymentComplete }: RegistrationFormProps) {
 
   const handlePaymentComplete = async () => {
     setShowPayment(false);
-    onPaymentComplete(); // Trigger success page in App.jsx
+    onPaymentComplete();
   };
 
   return (
@@ -316,8 +347,8 @@ function RegistrationForm({ onPaymentComplete }: RegistrationFormProps) {
                 >
                   <option value="Service">Service</option>
                 </select>
-				
-				<div className="col-span-1">
+                
+                <div className="col-span-1">
                   <label className="block text-sm text-gray-600 mb-1">Gender</label>
                   <select
                     className="border rounded p-2 w-full"
@@ -331,7 +362,6 @@ function RegistrationForm({ onPaymentComplete }: RegistrationFormProps) {
                     <option value="Other">Other</option>
                   </select>
                 </div>
-				
               </div>
             </div>
 
@@ -397,27 +427,71 @@ function RegistrationForm({ onPaymentComplete }: RegistrationFormProps) {
             <div>
               <h2 className="text-xl font-semibold mb-4">Present Address</h2>
               <div className="grid grid-cols-2 gap-4">
-                <input
-                  type="tel"
-                  placeholder="Owner Mobile Number"
-                  className="border rounded p-2"
-                  value={formData.presentAddress.ownerMobileNo}
-                  onChange={(e) => setFormData({
-                    ...formData,
-                    presentAddress: {...formData.presentAddress, ownerMobileNo: e.target.value}
-                  })}
-                  required
-                  disabled={isSubmitting}
-                />
-                <input
-                  type="text"
-                  placeholder="PG Name"
-                  className="border rounded p-2"
-                  value={formData.presentAddress.pgName}
-                  readOnly
-                  required
-                  disabled={isSubmitting}
-                />
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Owner Mobile Number
+                  </label>
+                  <input
+                    type="tel"
+                    placeholder="Owner Mobile Number"
+                    className="border rounded p-2 w-full"
+                    value={formData.presentAddress.ownerMobileNo}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      presentAddress: {
+                        ...formData.presentAddress,
+                        ownerMobileNo: e.target.value
+                      }
+                    })}
+                    required
+                    disabled={isSubmitting}
+                    maxLength={10}
+                  />
+                </div>
+
+                {currentOwner && (
+                  <div className="col-span-2">
+                    <div className="bg-blue-50 border border-blue-200 rounded p-3">
+                      <p className="text-blue-800">
+                        Owner found: <strong>{currentOwner.name}</strong>
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Select PG
+                  </label>
+                  <select
+                    className="border rounded p-2 w-full"
+                    value={formData.presentAddress.pgId}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      presentAddress: {
+                        ...formData.presentAddress,
+                        pgId: e.target.value
+                      }
+                    })}
+                    required
+                    disabled={!currentOwner || isSubmitting}
+                  >
+                    <option value="">Select a PG</option>
+                    {ownerPGs.map(pg => (
+                      <option key={pg.id} value={pg.id}>
+                        {pg.pgName} - {pg.address}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {formData.presentAddress.pgName && (
+                  <div className="col-span-2">
+                    <p className="text-sm text-gray-600">
+                      Selected PG: {formData.presentAddress.pgName}
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
 

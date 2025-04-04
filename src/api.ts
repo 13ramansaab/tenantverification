@@ -1,8 +1,8 @@
-import { ref, get, set } from 'firebase/database';
+import { ref, get, set, push } from 'firebase/database';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { v4 as uuidv4 } from 'uuid';
 import { policeStationsDb, pgVerificationsDb, storage } from './firebase';
-import { TenantFormData, PGOwner } from './types';
+import { TenantFormData, PGOwner, PGDetails } from './types';
 
 export const uploadFile = async (file: File, path: string): Promise<string> => {
   try {
@@ -63,15 +63,34 @@ export const fetchPoliceStations = async (state: string, district: string): Prom
 
 export const fetchPGOwnerByMobile = async (mobileNo: string): Promise<PGOwner | null> => {
   try {
-    const ownerRef = ref(pgVerificationsDb, `Owners/${mobileNo}/Owner Details`);
+    const ownerRef = ref(pgVerificationsDb, `Owners/${mobileNo}`);
     const snapshot = await get(ownerRef);
+    
     if (snapshot.exists()) {
       const data = snapshot.val();
+      const ownerDetails = data['Owner Details'];
+      const pgs: PGDetails[] = [];
+      
+      // Convert PGs object to array
+      if (data.PGs) {
+        Object.entries(data.PGs).forEach(([id, pg]: [string, any]) => {
+          pgs.push({
+            id,
+            pgName: pg.pgName,
+            address: pg.address,
+            houseNo: pg.houseNo,
+            streetName: pg.streetName,
+            locality: pg.locality,
+            city: pg.city
+          });
+        });
+      }
+      
       return {
         mobileNo,
-        name: data.name || '',
-        pgName: data.pgName || '',
-        address: data.address || ''
+        name: ownerDetails.name || '',
+        email: ownerDetails.email || '',
+        pgs
       };
     }
     return null;
@@ -81,9 +100,9 @@ export const fetchPGOwnerByMobile = async (mobileNo: string): Promise<PGOwner | 
   }
 };
 
-export const saveTenantData = async (ownerMobileNo: string, tenantData: TenantFormData): Promise<void> => {
+export const saveTenantData = async (ownerMobileNo: string, pgId: string, tenantData: TenantFormData): Promise<void> => {
   try {
-    const tenantRef = ref(pgVerificationsDb, `Owners/${ownerMobileNo}/Tenants/${tenantData.mobileNo}`);
+    const tenantRef = ref(pgVerificationsDb, `Owners/${ownerMobileNo}/PGs/${pgId}/Tenants/${tenantData.mobileNo}`);
     
     await set(tenantRef, {
       personalInfo: {
@@ -94,7 +113,7 @@ export const saveTenantData = async (ownerMobileNo: string, tenantData: TenantFo
         dateOfBirth: tenantData.dateOfBirth,
         religion: tenantData.religion,
         occupation: tenantData.occupation,
-		gender: tenantData.gender
+        gender: tenantData.gender
       },
       familyMember: {
         firstName: tenantData.familyMember.firstName,
@@ -104,6 +123,7 @@ export const saveTenantData = async (ownerMobileNo: string, tenantData: TenantFo
       },
       presentAddress: {
         ownerMobileNo: tenantData.presentAddress.ownerMobileNo,
+        pgId: tenantData.presentAddress.pgId,
         pgName: tenantData.presentAddress.pgName
       },
       permanentAddress: {

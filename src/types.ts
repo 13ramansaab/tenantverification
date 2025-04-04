@@ -6,7 +6,7 @@ export interface TenantFormData {
   dateOfBirth: string;
   religion: 'Hindu' | 'Muslim' | 'Sikh' | 'Christian' | 'Others';
   occupation: 'Service';
-  gender: 'M' | 'F' | 'Other'; // New field
+  gender: 'M' | 'F' | 'Other';
   familyMember: {
     firstName: string;
     lastName: string;
@@ -15,6 +15,7 @@ export interface TenantFormData {
   };
   presentAddress: {
     ownerMobileNo: string;
+    pgId: string; // New field to store specific PG ID
     pgName: string;
   };
   permanentAddress: {
@@ -32,21 +33,26 @@ export interface TenantFormData {
     photoIdType: 'Aadhar Card' | 'Voter Card' | 'Driving License';
     photoIdNumber: string;
     photo: string;
-    addressProof: string;
-  };
-  payment?: {
-    status: 'pending' | 'completed';
-    amount: number;
-    transactionId?: string;
-    timestamp?: string;
+    aadharFront: string;
+    aadharBack: string;
   };
 }
 
 export interface PGOwner {
   mobileNo: string;
   name: string;
+  email?: string;
+  pgs: PGDetails[];
+}
+
+export interface PGDetails {
+  id: string;
   pgName: string;
   address: string;
+  houseNo?: string;
+  streetName?: string;
+  locality?: string;
+  city?: string;
 }
 
 export interface PaymentData {

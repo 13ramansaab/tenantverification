@@ -30,11 +30,13 @@ const PaymentSuccess = () => {
 
         const tenantData = JSON.parse(localStorage.getItem('tenantFormData') || '{}');
         const ownerMobileNo = tenantData.presentAddress?.ownerMobileNo;
-        if (!ownerMobileNo || !tenantData.mobileNo) {
+        const pgId = tenantData.presentAddress?.pgId;
+        
+        if (!ownerMobileNo || !pgId || !tenantData.mobileNo) {
           throw new Error('Missing tenant data for submission');
         }
 
-        await saveTenantData(ownerMobileNo, tenantData);
+        await saveTenantData(ownerMobileNo, pgId, tenantData);
         console.log('Tenant data saved successfully');
 
         setIsPaid(true);
